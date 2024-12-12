@@ -50,7 +50,7 @@ const UserSchema = new Schema({
             ref: 'Student'
         }
     ],
-    dontations: [
+    donations: [
         {
             type: Schema.Types.ObjectId,
             ref: 'Donation'

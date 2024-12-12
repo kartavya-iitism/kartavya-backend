@@ -10,6 +10,11 @@ const DonationSchema = new Schema({
     user: {
         type: Schema.Types.ObjectId,
         ref: 'User'
+    },
+    typeOfDonation:{
+        type: String,
+        enum: ['Child', 'General'],
+        require: true
     }
     // screenshot
     // type -> child or general
