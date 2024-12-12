@@ -1,0 +1,5 @@
+Donation flow: user donates using qr and fills the form, this data is saved to database admin gets a mail, he verifies the transaction in bank record, marks this transaction as verified, user gets mail of verification
+allot child based on this
+
+
+donation page-> (direct)gateway, (register and donate, login and donate)qr/bank details
