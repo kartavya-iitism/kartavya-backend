@@ -3,22 +3,19 @@ const Schema = mongoose.Schema;
 
 const DonationSchema = new Schema({
     amount: Number,
-    transactionId: String,
     date: Date,
-    donationType: {
-        type: String,
-        enum: ['General', 'Sponsor'],
-        required: true
-    },
-    paymentMode: {
-        type: String,
-        Enumerator: ['Credit Card', 'Debit Card', 'Net Banking', 'UPI', 'Paytm', 'PhonePe', 'Google Pay', 'Other'],
-        required: true
-    },
+    name: String,
+    mobileNumber: String,
+    // email
     user: {
         type: Schema.Types.ObjectId,
         ref: 'User'
     }
+    // screenshot
+    // type -> child or general
+    // child in multiple of fix amount
+
 });
 
 module.exports = mongoose.model('Donation', DonationSchema);
+

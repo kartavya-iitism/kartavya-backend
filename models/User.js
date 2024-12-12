@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const passportLocalMongoose = require('passport-local-mongoose');
-const { options } = require('../routes/User');
 
 const UserSchema = new Schema({
     name: String,
