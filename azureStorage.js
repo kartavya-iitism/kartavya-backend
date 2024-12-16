@@ -3,11 +3,10 @@ const path = require('path');
 const { Readable } = require('stream');
 
 // Environment variables
-const AZURE_ACCOUNT_NAME = process.env.AZURE_ACCOUNT_NAME;
+const AZURE_CONNECTION_STRING = process.env.AZURE_CONNECTION_STRING;
 const AZURE_CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
-const AZURE_SAS_TOKEN = process.env.AZURE_SAS_TOKEN;
 
-if (!AZURE_ACCOUNT_NAME || !AZURE_CONTAINER_NAME || !AZURE_SAS_TOKEN) {
+if (!AZURE_CONNECTION_STRING || !AZURE_CONTAINER_NAME) {
     throw new Error('Azure Blob Storage configuration is incomplete.');
 }
 
@@ -18,16 +17,13 @@ const uploadToAzureBlob = async (req, res, next) => {
         }
 
         // Extract user type from the URL
-        console.log(req.baseUrl)
         const userType = req.baseUrl.split('/')[1];
         if (!userType) {
             return res.status(400).json({ error: 'Invalid user type in URL.' });
         }
 
-        // Initialize Blob Service Client
-        const blobServiceClient = new BlobServiceClient(
-            `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net?${AZURE_SAS_TOKEN}`
-        );
+        // Initialize Blob Service Client using connection string
+        const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_CONNECTION_STRING);
         const containerClient = blobServiceClient.getContainerClient(AZURE_CONTAINER_NAME);
 
         // Generate a blob name with a virtual directory

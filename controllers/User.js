@@ -17,7 +17,8 @@ module.exports.registerUser = async (req, res, profilePictureUrl) => {
             ismPassout,
             batch,
             kartavyaVolunteer,
-            yearsOfService,
+            yearsOfServiceStart,
+            yearsOfServiceEnd,
             typeOfSponsor
         } = req.body;
 
@@ -36,7 +37,8 @@ module.exports.registerUser = async (req, res, profilePictureUrl) => {
             ismPassout: ismPassout,
             batch: batch,
             kartavyaVolunteer: kartavyaVolunteer,
-            yearsOfService: yearsOfService,
+            yearsOfServiceStart: yearsOfServiceStart,
+            yearsOfServiceEnd: yearsOfServiceEnd,
             typeOfSponsor: typeOfSponsor,
             profileImage: profilePictureUrl,
             otp: {
@@ -46,6 +48,7 @@ module.exports.registerUser = async (req, res, profilePictureUrl) => {
             otpExpiry: Date.now() + 60 * 60 * 1000, // 60 minutes expiry
             isVerified: false
         });
+        console.log(user)
 
         await User.register(user, password);
 
@@ -54,7 +57,6 @@ module.exports.registerUser = async (req, res, profilePictureUrl) => {
         //send otp to mobile
 
         //send otp to email
-
 
         res.status(201).json({
             message: 'Registration successful! Please verify your account using the OTP sent to your email and mobile.',
@@ -68,6 +70,7 @@ module.exports.registerUser = async (req, res, profilePictureUrl) => {
             } catch (deleteError) {
                 console.error('Failed to delete uploaded file:', deleteError);
             }
+            console.log(err.name)
         }
         res.status(500).json({
             name: err.name,
@@ -137,7 +140,7 @@ module.exports.loginUser = async (req, res) => {
 
 module.exports.verifyOtp = async (req, res) => {
     try {
-        const { username, otpMobile, otpEmail } = req.body;
+        const { username, otpEmail } = req.body;
         const user = await User.findOne({ username });
 
         if (!user) {
@@ -145,7 +148,7 @@ module.exports.verifyOtp = async (req, res) => {
                 message: 'User not found',
             });
         }
-        if (user.otp.otpMobile !== otpMobile || user.otp.otpEmail !== otpEmail || Date.now() > user.otpExpiry) {
+        if (String(user.otp.otpEmail) !== String(otpEmail) || Date.now() > user.otpExpiry) {
             return res.status(400).json({
                 message: 'Invalid or expired OTP',
             });
@@ -155,7 +158,7 @@ module.exports.verifyOtp = async (req, res) => {
         user.otpExpiry = undefined;
         await user.save();
         res.status(200).json({
-            message: 'Account verified successfully!',
+            message: 'Account verified successfully! Please Login.',
         });
     } catch (err) {
         res.status(500).json({

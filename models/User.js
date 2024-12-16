@@ -38,7 +38,8 @@ const UserSchema = new Schema({
         type: Boolean,
         default: false
     },
-    yearsOfService: String,
+    yearsOfServiceStart: String,
+    yearsOfServiceEnd: String,
     typeOfSponsor: {
         type: String,
         enum: ['Student', 'General', 'Both'],
@@ -65,6 +66,10 @@ const UserSchema = new Schema({
     role: {
         type: String,
         default: 'regular'
+    },
+    dateOfRegistration: {
+        type: Date,
+        default: Date.now
     }
 });
 
