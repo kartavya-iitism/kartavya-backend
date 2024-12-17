@@ -8,8 +8,7 @@ const DonationSchema = new Schema({
     },
     donationDate: {
         type: Date,
-        default: Date.now,
-        required: true
+        default: Date.now
     },
     name: {
         type: String,

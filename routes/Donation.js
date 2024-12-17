@@ -11,7 +11,7 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 } // Limit file size to 5MB
 });
 
-router.route("/donate")
+router.route("/")
     .post(upload.single('reciept'),
         catchAsync(uploadToAzureBlob),
         catchAsync(async (req, res) => {

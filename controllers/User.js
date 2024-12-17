@@ -97,23 +97,24 @@ module.exports.loginUser = async (req, res) => {
                 message: 'Account not verified. Please verify your account before logging in.',
             });
         }
-
+        const sanitizedUser = {
+            username: user.username,
+            name: user.name,
+            email: user.email,
+            contactNumber: user.contactNumber,
+            address: user.address,
+            dateOfBirth: user.dateOfBirth,
+            gender: user.gender,
+            governmentOfficial: user.governmentOfficial,
+            ismPassout: user.ismPassout,
+            batch: user.batch,
+            kartavyaVolunteer: user.kartavyaVolunteer,
+            yearsOfService: user.yearsOfService,
+            typeOfSponsor: user.typeOfSponsor,
+            role: user.role
+        }
         jwt.sign(
-            {
-                username: user.username,
-                name: user.name,
-                email: user.email,
-                contactNumber: user.contactNumber,
-                address: user.address,
-                dateOfBirth: user.dateOfBirth,
-                gender: user.gender,
-                governmentOfficial: user.governmentOfficial,
-                ismPassout: user.ismPassout,
-                batch: user.batch,
-                kartavyaVolunteer: user.kartavyaVolunteer,
-                yearsOfService: user.yearsOfService,
-                typeOfSponsor: user.typeOfSponsor
-            },
+            sanitizedUser,
             process.env.JWT_KEY,
             { expiresIn: '1d' },
             (err, token) => {
@@ -125,7 +126,8 @@ module.exports.loginUser = async (req, res) => {
 
                 res.status(200).json({
                     message: 'Login successful',
-                    token: token
+                    token: token,
+                    user: sanitizedUser
                 });
             }
         );
