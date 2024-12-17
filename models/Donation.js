@@ -2,24 +2,33 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const DonationSchema = new Schema({
-    amount: Number,
-    date: Date,
-    name: String,
-    mobileNumber: String,
-    // email
+    amount: {
+        type: Number,
+        required: true
+    },
+    donationDate: {
+        type: Date,
+        default: Date.now,
+        required: true
+    },
+    name: {
+        type: String,
+        required: true
+    },
+    contactNumber: {
+        type: String,
+        required: true
+    },
+    email: {
+        type: String,
+        required: true
+    },
     user: {
         type: Schema.Types.ObjectId,
         ref: 'User'
     },
-    typeOfDonation:{
-        type: String,
-        enum: ['Child', 'General'],
-        require: true
-    }
-    // screenshot
-    // type -> child or general
-    // child in multiple of fix amount
-
+    recieptUrl: String,
+    numChild: Number
 });
 
 module.exports = mongoose.model('Donation', DonationSchema);

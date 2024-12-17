@@ -1,38 +1,33 @@
-const Donation = require('../models/Donation');  
-const User = require('../models/User'); 
+const Donation = require('../models/Donation');
+const User = require('../models/User');
 
-module.exports.donate = async (req, res) => {
+module.exports.donate = async (req, res, recieptUrl) => {
     try {
-        const { username, amount, date, typeOfDonation } = req.body;
+        const {
+            amount,
+            donationDate,
+            name,
+            contactNumber,
+            email,
+            numChild
+        } = req.body;
 
-        if (!username || !amount || !date || !typeOfDonation) {
-            return res.status(400).json({ error: 'All fields are required' });
-        }
- 
-        const user = await User.findOne({ username });
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        console.log('User found:', user);
-
+        const user = await User.findOne({ email: email });
         const donation = new Donation({
             amount,
-            date,
-            name: user.name,
-            mobileNumber: user.contactNumber,
-            user: user._id,
-            typeOfDonation,
+            donationDate,
+            name,
+            contactNumber,
+            email,
+            numChild,
+            recieptUrl,
+            user: user ? user._id : null
         });
-
         const savedDonation = await donation.save();
-
-        user.donations.push(savedDonation._id); 
-
-        await user.save();
-
-        console.log('Updated user:', user);
-
+        if (user) {
+            user.donations.push(savedDonation._id);
+            await user.save();
+        }
         res.status(201).json({ message: 'Donation made successfully', donation: savedDonation });
 
     } catch (error) {
@@ -43,22 +38,22 @@ module.exports.donate = async (req, res) => {
 
 module.exports.viewSingleDonation = async (req, res) => {
     try {
-      const donationId = req.params.donationId;
+        const donationId = req.params.donationId;
 
-      const donation = await Donation.findById(donationId).populate('user', 'name email username');  // Populate user data if necessary
-  
-      if (!donation) {
-        return res.status(404).json({ message: 'Donation not found' });
-      }
+        const donation = await Donation.findById(donationId).populate('user', 'name email username');  // Populate user data if necessary
 
-      return res.status(200).json({ donation });
+        if (!donation) {
+            return res.status(404).json({ message: 'Donation not found' });
+        }
+
+        return res.status(200).json({ donation });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Server error' });
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
     }
-  };
+};
 
-  module.exports.viewAllDonations = async (req, res) => {
+module.exports.viewAllDonations = async (req, res) => {
     try {
         const donations = await Donation.find().populate('user', 'name email username'); // Populate user data if necessary
 
