@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const crypto = require('crypto');
+const { ContainerSASPermissions } = require('@azure/storage-blob');
 
 module.exports.registerUser = async (req, res, profilePictureUrl) => {
     try {
@@ -144,7 +145,7 @@ module.exports.verifyOtp = async (req, res) => {
     try {
         const { username, otpEmail } = req.body;
         const user = await User.findOne({ username });
-
+        console.log(req.body)
         if (!user) {
             return res.status(404).json({
                 message: 'User not found',
@@ -180,7 +181,7 @@ module.exports.viewUser = async (req, res) => {
                 });
             } else {
                 if (authorizedData) {
-                    const user = await User.findOne({ username: authorizedData.username });
+                    const user = await User.findOne({ username: authorizedData.username }).select('-salt -hash -_id');
                     if (user.isVerified === false) {
                         res.status(403).json({ message: "Account not verified. Please verify your account before accessing your profile." });
                     }
@@ -280,54 +281,61 @@ module.exports.editUser = async (req, res) => {
 
 module.exports.changePassword = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { username } = req.params;
         const { oldPassword, newPassword } = req.body;
 
-        const user = await User.findOne({ _id: id });
-        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
-            if (err) {
-                res.status(403).json({
-                    message: "protected Route"
-                });
-            } else {
-                if (authorizedData) {
-                    if (authorizedData.username !== user.username) {
-                        res.status(403).json({ message: "Unauthorized access to change password" });
-                    }
-                } else {
-                    res.status(401).json({ message: "Unauthorized access to change password" });
-                }
-            }
-        });
+        const user = await User.findOne({ username: username });  // Use findOne instead of find
 
-        if (!oldPassword || !newPassword) {
-            return res.status(400).json({
-                message: "Old and new passwords are required",
-            });
-        }
         if (!user) {
             return res.status(404).json({
                 message: "User not found",
             });
         }
-        if (user.isVerified === false) {
-            res.status(403).json({ message: "Account not verified. Please verify your account before editing your password." });
-        }
 
-        user.authenticate(oldPassword, async (err, authenticatedUser) => {
-            if (err || !authenticatedUser) {
-                return res.status(401).json({
-                    message: "Incorrect old password",
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                return res.status(403).json({
+                    message: "Protected Route. Unauthorized access",
                 });
             }
-            await user.setPassword(newPassword);
-            await user.save();
 
-            res.status(200).json({
-                message: "Password changed successfully",
+            // Ensure this check is performed after JWT verification
+            if (authorizedData.email !== user.email) {
+                return res.status(403).json({ message: "Unauthorized access to change password" });
+            }
+
+            // Now proceed with password change logic
+            if (!oldPassword || !newPassword) {
+                return res.status(400).json({
+                    message: "Old and new passwords are required",
+                });
+            }
+
+            if (user.isVerified === false) {
+                return res.status(403).json({ message: "Account not verified. Please verify your account before editing your password." });
+            }
+
+            // Authenticate old password
+            user.authenticate(oldPassword, async (err, authenticatedUser) => {
+                if (err || !authenticatedUser) {
+                    return res.status(401).json({
+                        message: "Incorrect old password",
+                    });
+                }
+
+                // Set new password and save user
+                await user.setPassword(newPassword);
+                await user.save();
+
+                return res.status(200).json({
+                    message: "Password changed successfully",
+                });
             });
         });
+
     } catch (err) {
+        // Make sure to handle the error properly
+        console.error(err);
         res.status(500).json({
             name: err.name,
             error: err.message,

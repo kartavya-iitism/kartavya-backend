@@ -18,7 +18,7 @@ router.route("/register")
         upload.single('profilePicture'), // Handle file upload
         catchAsync(uploadToAzureBlob),   // Upload file to Azure Blob Storage
         catchAsync(async (req, res) => {
-            const profilePictureUrl = req.fileUrl; // Get the uploaded file's URL
+            const profilePictureUrl = req.fileUrl ? req.fileUrl : ''; // Get the uploaded file's URL
             await User.registerUser(req, res, profilePictureUrl); // Pass URL to the controller
         })
     );
@@ -32,7 +32,7 @@ router.route("/view")
 router.route("/:id/edit")
     .put(checkToken, User.editUser);
 
-router.route("/:id/changePassword")
+router.route("/:username/changePassword")
     .put(checkToken, User.changePassword);
 
 router.route("/verify")
