@@ -181,7 +181,16 @@ module.exports.viewUser = async (req, res) => {
                 });
             } else {
                 if (authorizedData) {
-                    const user = await User.findOne({ username: authorizedData.username }).select('-salt -hash -_id');
+                    const user = await User.findOne({ username: authorizedData.username })
+                        .select('-salt -hash -_id')
+                        .populate({
+                            path: 'donations',
+                            select: '-_id -user'
+                        })
+                        .populate({
+                            path: 'sponsoredStudents',
+                            select: '-_id -sponsor'
+                        });
                     if (user.isVerified === false) {
                         res.status(403).json({ message: "Account not verified. Please verify your account before accessing your profile." });
                     }
