@@ -26,6 +26,11 @@ const DonationSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User'
     },
+    verified: {
+        type: Boolean,
+        default: false,
+        required: true
+    },
     recieptUrl: String,
     numChild: Number
 });

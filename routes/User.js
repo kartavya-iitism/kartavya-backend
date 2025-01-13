@@ -38,6 +38,9 @@ router.route("/:username/changePassword")
 router.route("/verify")
     .post(User.verifyOtp);
 
+router.route("/getAllUsers")
+    .get(User.getAllUsers)
+
 router.route("/failure")
     .get((req, res) => res.status(401).json({ message: "Incorrect username or password" }));
 
