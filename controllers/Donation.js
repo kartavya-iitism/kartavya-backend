@@ -1,5 +1,6 @@
 const Donation = require('../models/Donation');
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 
 module.exports.donate = async (req, res, recieptUrl) => {
     try {
@@ -55,7 +56,13 @@ module.exports.viewSingleDonation = async (req, res) => {
 
 module.exports.viewAllDonations = async (req, res) => {
     try {
-        const donations = await Donation.find().populate('user', 'name email username'); // Populate user data if necessary
+        const donations = await Donation.find()
+            .select('-user')
+            .populate({
+                path: 'user',
+                select: 'name email username -_id'
+            })
+            .sort({ donationDate: -1 });
 
         if (!donations || donations.length === 0) {
             return res.status(404).json({ message: 'No donations found' });
@@ -67,3 +74,66 @@ module.exports.viewAllDonations = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
+module.exports.verifyDonation = async (req, res) => {
+    try {
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                res.status(403).json({
+                    message: "protected Route"
+                });
+            } else {
+                if (authorizedData) {
+                    const user = await User.findOne({ username: authorizedData.username })
+                    if (user.role !== 'admin') {
+                        res.status(403).json({ message: "Non admin account detected." });
+                    }
+                    const donationId = req.params.donationId;
+                    const donation = await Donation.findOne({ _id: donationId });
+                    donation.verified = true;
+                    await donation.save();
+                    return res.status(200).json({ message: 'Donation Verified' })
+                } else {
+                    res.status(401).json({ message: "Unauthorized access to user's profile" });
+                }
+            }
+        });
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({ message: 'Server error' })
+    }
+}
+
+module.exports.rejectDonation = async (req, res) => {
+    try {
+
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                res.status(403).json({
+                    message: "protected Route"
+                });
+            } else {
+                if (authorizedData) {
+                    const user = await User.findOne({ username: authorizedData.username })
+                    if (user.role !== 'admin') {
+                        res.status(403).json({ message: "Non admin account detected." });
+                    }
+                    const donationId = req.params.donationId;
+                    const message = req.body.message;
+                    const donation = await Donation.findOne({ _id: donationId });
+                    donation.rejected = true;
+                    donation.rejectionReason = message;
+                    await donation.save();
+                    return res.status(200).json({ message: 'Donation Rejected' })
+                } else {
+                    res.status(401).json({ message: "Unauthorized access to user's profile" });
+                }
+            }
+        });
+
+        return res.status(200).json({ message: 'Donation Rejected' })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({ message: 'Server error' })
+    }
+}

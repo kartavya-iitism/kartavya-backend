@@ -2,10 +2,11 @@ const express = require("express");
 const router = express.Router();
 const User = require("../controllers/User");
 const catchAsync = require("../utils/catchAsync");
-const passport = require('passport');
 const { checkToken } = require("../middleware")
 const multer = require("multer");
 const uploadToAzureBlob = require("../azureStorage");
+const passport = require('passport');
+require('../utils/passport');
 
 // Configure multer for file uploads
 const upload = multer({
@@ -13,6 +14,8 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 } // Limit file size to 5MB
 });
 
+
+// mail otp
 router.route("/register")
     .post(
         upload.single('profilePicture'), // Handle file upload
@@ -23,8 +26,13 @@ router.route("/register")
         })
     );
 
-router.route("/login")
-    .post(passport.authenticate("local", { failureRedirect: "/user/failure", failureMessage: true }), User.loginUser);
+router.post("/login", User.loginUser);
+
+router.route("/forgot-password")
+    .post(catchAsync(User.forgotPassword));
+
+router.route("/reset-password/:token")
+    .post(catchAsync(User.resetPassword));
 
 router.route("/view")
     .get(checkToken, User.viewUser);
@@ -43,6 +51,21 @@ router.route("/getAllUsers")
 
 router.route("/failure")
     .get((req, res) => res.status(401).json({ message: "Incorrect username or password" }));
+
+router.get('/auth/google',
+    passport.authenticate('google', {
+        scope: ['profile', 'email']
+    })
+);
+
+router.get('/auth/google/callback',
+    passport.authenticate('google', {
+        session: false,
+        failureRedirect: '/login',
+        scope: ['profile', 'email']
+    }),
+    catchAsync(User.googleCallback)
+);
 
 
 module.exports = router;

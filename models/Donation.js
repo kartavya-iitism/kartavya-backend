@@ -31,6 +31,12 @@ const DonationSchema = new Schema({
         default: false,
         required: true
     },
+    rejected: {
+        type: Boolean,
+        default: false,
+        required: true
+    },
+    rejectionReason: String,
     recieptUrl: String,
     numChild: Number
 });

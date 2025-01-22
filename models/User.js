@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const passportLocalMongoose = require('passport-local-mongoose');
+const crypto = require('crypto');
 
 const UserSchema = new Schema({
     name: String,
@@ -49,6 +49,7 @@ const UserSchema = new Schema({
         enum: ['Student', 'General', 'Both'],
         default: 'General'
     },
+    currentJob: String,
     sponsoredStudents: [
         {
             type: Schema.Types.ObjectId,
@@ -74,8 +75,36 @@ const UserSchema = new Schema({
     dateOfRegistration: {
         type: Date,
         default: Date.now
+    },
+    resetPasswordToken: {
+        type: String,
+        required: false
+    },
+    resetPasswordExpires: {
+        type: Date,
+        required: false
+    },
+    hash: String,
+    salt: String,
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true
     }
 });
 
-UserSchema.plugin(passportLocalMongoose);
+UserSchema.methods.setPassword = function (password) {
+    this.salt = crypto.randomBytes(16).toString('hex');
+    this.hash = crypto
+        .pbkdf2Sync(password, this.salt, 10000, 512, 'sha512')
+        .toString('hex');
+};
+
+UserSchema.methods.validatePassword = function (password) {
+    const hash = crypto
+        .pbkdf2Sync(password, this.salt, 10000, 512, 'sha512')
+        .toString('hex');
+    return this.hash === hash;
+};
+
 module.exports = mongoose.model('User', UserSchema);

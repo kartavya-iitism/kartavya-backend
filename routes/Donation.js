@@ -2,12 +2,13 @@ const express = require("express");
 const router = express.Router();
 const Donation = require("../controllers/Donation")
 const catchAsync = require("../utils/catchAsync");
+const { checkToken } = require("../middleware")
 const multer = require("multer");
 const uploadToAzureBlob = require("../azureStorage");
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 } // Limit file size to 5MB
+    limits: { fileSize: 10 * 1024 * 1024 } // Limit file size to 5MB
 });
 
 router.route("/new")
@@ -18,7 +19,13 @@ router.route("/new")
             await Donation.donate(req, res, recieptUrl)
         })
     )
-router.route("/viewSingleDonation/:donationId").get(Donation.viewSingleDonation)
-router.route("/viewAllDonation").get(Donation.viewAllDonations)
+router.route("/viewSingleDonation/:donationId")
+    .get(Donation.viewSingleDonation)
+router.route("/verify/:donationId")
+    .put(checkToken, Donation.verifyDonation)
+router.route("/reject/:donationId")
+    .put(checkToken, Donation.rejectDonation)
+router.route("/viewAllDonation")
+    .get(Donation.viewAllDonations)
 
 module.exports = router;
