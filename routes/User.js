@@ -37,7 +37,7 @@ router.route("/reset-password/:token")
 router.route("/view")
     .get(checkToken, User.viewUser);
 
-router.route("/:id/edit")
+router.route("/:username/edit")
     .put(checkToken, User.editUser);
 
 router.route("/:username/changePassword")
@@ -48,6 +48,9 @@ router.route("/verify")
 
 router.route("/getAllUsers")
     .get(User.getAllUsers)
+
+router.route("/dashboard")
+    .get(checkToken, User.getDashboard)
 
 router.route("/failure")
     .get((req, res) => res.status(401).json({ message: "Incorrect username or password" }));

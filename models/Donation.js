@@ -38,7 +38,10 @@ const DonationSchema = new Schema({
     },
     rejectionReason: String,
     recieptUrl: String,
-    numChild: Number
+    numChild: {
+        type: Number,
+        default: 0
+    }
 });
 
 module.exports = mongoose.model('Donation', DonationSchema);

@@ -115,6 +115,7 @@ module.exports.loginUser = async (req, res) => {
             address: user.address,
             dateOfBirth: user.dateOfBirth,
             gender: user.gender,
+            currentJob: user.currentJob,
             governmentOfficial: user.governmentOfficial,
             ismPassout: user.ismPassout,
             batch: user.batch,
@@ -212,9 +213,10 @@ module.exports.viewUser = async (req, res) => {
 
 module.exports.editUser = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { username } = req.params;
         const updates = req.body;
-        const user = await User.findOne({ _id: id });
+        const user = await User.findOne({ username: username });
+        console.log(req.body)
         // jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
         //     if (err) {
         //         res.status(403).json({
@@ -240,7 +242,7 @@ module.exports.editUser = async (req, res) => {
             res.status(403).json({ message: "Account not verified. Please verify your account before editing your profile." });
         }
         const updatedUser = await User.findOneAndUpdate(
-            { _id: id },
+            { _id: user._id },
             { $set: updates },
             { new: true, runValidators: true }
         );
@@ -259,6 +261,7 @@ module.exports.editUser = async (req, res) => {
                 contactNumber: updatedUser.contactNumber,
                 address: updatedUser.address,
                 dateOfBirth: updatedUser.dateOfBirth,
+                currentJob: updatedUser.currentJob,
                 gender: updatedUser.gender,
                 governmentOfficial: updatedUser.governmentOfficial,
                 ismPassout: updatedUser.ismPassout,
@@ -284,6 +287,7 @@ module.exports.editUser = async (req, res) => {
             }
         );
     } catch (err) {
+        console.log(err)
         res.status(500).json({
             name: err.name,
             error: err.message,
@@ -524,3 +528,50 @@ module.exports.googleCallback = async (req, res) => {
         res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
     }
 };
+
+
+module.exports.getDashboard = async (req, res) => {
+    try {
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                res.status(403).json({
+                    message: "protected Route"
+                });
+            } else {
+                if (authorizedData) {
+                    const user = await User.findOne({ username: authorizedData.username })
+                        .select('-salt -hash -_id')
+                        .populate({
+                            path: 'donations',
+                            select: '-_id -user'
+                        })
+                        .populate({
+                            path: 'sponsoredStudents',
+                            select: '-_id -sponsor'
+                        });
+                    if (user.isVerified === false) {
+                        res.status(403).json({ message: "Account not verified. Please verify your account before accessing your profile." });
+                    }
+                    const totalDonations = user.donations
+                        .filter(donation => donation.verified === true)
+                        .reduce((sum, donation) => sum + (donation.amount || 0), 0);
+
+                    const dashboardData = {
+                        totalDonations: totalDonations,
+                        childrenSponsored: user.sponsoredStudents.length,
+                        lastDonation: user.donations[0],
+                        recentDonations: user.donations
+                            .sort((a, b) => b.donationDate - a.donationDate)
+                            .slice(0, 5)
+                    };
+                    res.status(200).json(dashboardData);
+
+                } else {
+                    res.status(401).json({ message: "Unauthorized access to user's profile" });
+                }
+            }
+        });
+    } catch (e) {
+        res.status(401).json({ name: e.name, message: e.message });
+    }
+}
