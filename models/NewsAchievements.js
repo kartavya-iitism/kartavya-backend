@@ -9,8 +9,7 @@ const studentStorySchema = new Schema({
     },
     category: {
         type: String,
-        required: true,
-        enum: ['Academic Excellence', 'Competition', 'Other']
+        required: true
     },
     title: {
         type: String,
