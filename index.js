@@ -9,6 +9,7 @@ const UserRoutes = require("./routes/User");
 const DonationRoutes = require("./routes/Donation");
 const StudentRoutes = require("./routes/Student");
 const newsAchievementsRoutes = require("./routes/NewsAchievements")
+const documentRoutes = require('./routes/Document');
 
 const passport = require("passport");
 const cors = require("cors");
@@ -37,6 +38,7 @@ app.use("/user", UserRoutes);
 app.use("/student", StudentRoutes);
 app.use("/donation", DonationRoutes);
 app.use('/news', newsAchievementsRoutes);
+app.use('/document', documentRoutes);
 
 app.get("/", (req, res) => {
     res.status(200).json({ home: "home" });

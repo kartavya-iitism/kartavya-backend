@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Document = require('../models/Document');
 const crypto = require('crypto');
 const { sendEmail } = require('../utils/mailer');
 const generateEmailTemplate = require('../utils/mailTemplate');
@@ -149,7 +150,6 @@ module.exports.verifyOtp = async (req, res) => {
     try {
         const { username, otpEmail } = req.body;
         const user = await User.findOne({ username });
-        console.log(req.body)
         if (!user) {
             return res.status(404).json({
                 message: 'User not found',
@@ -552,6 +552,7 @@ module.exports.getDashboard = async (req, res) => {
                     if (user.isVerified === false) {
                         res.status(403).json({ message: "Account not verified. Please verify your account before accessing your profile." });
                     }
+                    const documents = await Document.find({})
                     const totalDonations = user.donations
                         .filter(donation => donation.verified === true)
                         .reduce((sum, donation) => sum + (donation.amount || 0), 0);
@@ -562,7 +563,8 @@ module.exports.getDashboard = async (req, res) => {
                         lastDonation: user.donations[0],
                         recentDonations: user.donations
                             .sort((a, b) => b.donationDate - a.donationDate)
-                            .slice(0, 5)
+                            .slice(0, 5),
+                        documents: documents
                     };
                     res.status(200).json(dashboardData);
 
