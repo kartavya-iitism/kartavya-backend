@@ -56,4 +56,27 @@ const uploadToAzureBlob = async (req, res, next) => {
     }
 };
 
-module.exports = uploadToAzureBlob;
+const deleteFromAzureBlob = async (blobUrl) => {
+    try {
+        if (!blobUrl) {
+            throw new Error('No blob URL provided');
+        }
+
+        const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_CONNECTION_STRING);
+        const containerClient = blobServiceClient.getContainerClient(AZURE_CONTAINER_NAME);
+
+        const blobName = blobUrl.split(`${AZURE_CONTAINER_NAME}/`)[1];
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+        await blockBlobClient.delete();
+        return true;
+    } catch (error) {
+        console.error('Azure Blob Delete Error:', error);
+        throw error;
+    }
+};
+
+module.exports = {
+    uploadToAzureBlob,
+    deleteFromAzureBlob
+};
