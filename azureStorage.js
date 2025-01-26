@@ -76,7 +76,4 @@ const deleteFromAzureBlob = async (blobUrl) => {
     }
 };
 
-module.exports = {
-    uploadToAzureBlob,
-    deleteFromAzureBlob
-};
+module.exports = uploadToAzureBlob
