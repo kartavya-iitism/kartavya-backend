@@ -10,6 +10,7 @@ const DonationRoutes = require("./routes/Donation");
 const StudentRoutes = require("./routes/Student");
 const newsAchievementsRoutes = require("./routes/NewsAchievements")
 const documentRoutes = require('./routes/Document');
+const path = require('path');
 
 const passport = require("passport");
 const cors = require("cors");
@@ -34,15 +35,18 @@ app.use(bodyParser.json());
 app.use(methodOverride("_method"));
 app.use(passport.initialize());
 
-app.use("/user", UserRoutes);
-app.use("/student", StudentRoutes);
-app.use("/donation", DonationRoutes);
-app.use('/news', newsAchievementsRoutes);
-app.use('/document', documentRoutes);
+app.use("/api/user", UserRoutes);
+app.use("/api/student", StudentRoutes);
+app.use("/api/donation", DonationRoutes);
+app.use('/api/news', newsAchievementsRoutes);
+app.use('/api/document', documentRoutes);
 
-app.get("/", (req, res) => {
-    res.status(200).json({ home: "home" });
+
+app.use(express.static(path.join(__dirname, 'dist')));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
+
 
 app.listen(port, () => {
     console.log(`Serving on port ${port}`);
