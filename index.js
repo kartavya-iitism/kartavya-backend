@@ -11,10 +11,8 @@ const StudentRoutes = require("./routes/Student");
 const newsAchievementsRoutes = require("./routes/NewsAchievements")
 const documentRoutes = require('./routes/Document');
 const path = require('path');
-
 const passport = require("passport");
 const cors = require("cors");
-
 const dbUrl = process.env.DB_URL;
 const port = process.env.PORT || 3000;
 
@@ -27,8 +25,6 @@ db.once("open", function () {
 });
 
 const app = express();
-
-
 app.use(cors({ origin: '*' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());

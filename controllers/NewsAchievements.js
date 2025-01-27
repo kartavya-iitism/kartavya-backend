@@ -1,6 +1,7 @@
 const { StudentStory, AcademicMilestone, RecentUpdate } = require('../models/NewsAchievements');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const deleteFromAzureBlob = require('../utils/deleteFromBlob');
 
 module.exports.addContent = async (req, res) => {
     try {
@@ -74,27 +75,60 @@ module.exports.getAll = async (req, res) => {
 
 module.exports.deleteContent = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { type } = req.query;
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                return res.status(403).json({
+                    message: "Invalid token"
+                });
+            }
+            const user = await User.findOne({ username: authorizedData.username });
+            if (!user || user.role !== 'admin') {
+                return res.status(403).json({
+                    message: "Only admin can delete content"
+                });
+            }
 
-        const authorizedData = await jwt.verify(req.token, process.env.JWT_KEY);
-        const user = await User.findOne({ username: authorizedData.username });
+            const { type, id } = req.params;
+            let Model;
+            switch (type) {
+                case 'story':
+                    Model = StudentStory;
+                    break;
+                case 'milestone':
+                    Model = AcademicMilestone;
+                    break;
+                case 'update':
+                    Model = RecentUpdate;
+                    break;
+                default:
+                    return res.status(400).json({
+                        message: "Invalid content type"
+                    });
+            }
+            const content = await Model.findById(id);
+            if (!content) {
+                return res.status(404).json({
+                    message: "Content not found"
+                });
+            }
+            if (type === 'story' && content.studentImage) {
+                try {
+                    await deleteFromAzureBlob(content.studentImage);
+                } catch (error) {
+                    console.error('Failed to delete image:', error);
+                }
+            }
+            await Model.deleteOne({ _id: id });
 
-        if (!user || user.role !== 'admin') {
-            return res.status(403).json({ message: 'Unauthorized access' });
-        }
-
-        let Model;
-        switch (type) {
-            case 'story': Model = StudentStory; break;
-            case 'milestone': Model = AcademicMilestone; break;
-            case 'update': Model = RecentUpdate; break;
-            default: throw new Error('Invalid content type');
-        }
-
-        await Model.findByIdAndDelete(id);
-        res.status(200).json({ message: 'Content deleted successfully' });
+            res.status(200).json({
+                message: `${type} deleted successfully`
+            });
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error(error);
+        res.status(500).json({
+            message: "Failed to delete content",
+            error: error.message
+        });
     }
 };

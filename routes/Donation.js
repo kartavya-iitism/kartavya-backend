@@ -27,5 +27,9 @@ router.route("/reject/:donationId")
     .put(checkToken, Donation.rejectDonation)
 router.route("/viewAllDonation")
     .get(Donation.viewAllDonations)
+router.delete('/bulk-delete',
+    checkToken,
+    catchAsync(Donation.bulkDeleteDonations)
+);
 
 module.exports = router;

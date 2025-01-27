@@ -47,7 +47,7 @@ router.route("/verify")
     .post(User.verifyOtp);
 
 router.route("/getAllUsers")
-    .get(User.getAllUsers)
+    .get(checkToken, User.getAllUsers)
 
 router.route("/dashboard")
     .get(checkToken, User.getDashboard)
@@ -68,6 +68,17 @@ router.get('/auth/google/callback',
         scope: ['profile', 'email']
     }),
     catchAsync(User.googleCallback)
+);
+
+router.post('/send-mails',
+    checkToken,
+    catchAsync(User.sendBulkEmails)
+);
+
+
+router.delete('/delete/:userToDelete',
+    checkToken,
+    catchAsync(User.deleteUser)
 );
 
 

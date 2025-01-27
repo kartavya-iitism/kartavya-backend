@@ -18,6 +18,9 @@ router.post('/add',
     catchAsync(uploadToAzureBlob),
     catchAsync(NewsAchievements.addContent)
 );
-router.delete('/:id', checkToken, catchAsync(NewsAchievements.deleteContent));
+router.delete('/delete/:type/:id',
+    checkToken,
+    catchAsync(NewsAchievements.deleteContent)
+);
 
 module.exports = router;

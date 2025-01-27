@@ -41,8 +41,9 @@ const DonationSchema = new Schema({
     numChild: {
         type: Number,
         default: 0
-    }
+    },
 });
+
 
 module.exports = mongoose.model('Donation', DonationSchema);
 

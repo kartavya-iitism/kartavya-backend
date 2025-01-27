@@ -4,6 +4,7 @@ const Document = require('../models/Document');
 const crypto = require('crypto');
 const { sendEmail } = require('../utils/mailer');
 const generateEmailTemplate = require('../utils/mailTemplate');
+const deleteFromAzureBlob = require('../utils/deleteFromBlob');
 
 module.exports.registerUser = async (req, res, profilePictureUrl) => {
     try {
@@ -149,15 +150,41 @@ module.exports.loginUser = async (req, res) => {
 module.exports.verifyOtp = async (req, res) => {
     try {
         const { username, otpEmail } = req.body;
+        if (!username || !otpEmail) {
+            return res.status(400).json({
+                code: 'INVALID_INPUT',
+                message: 'Username and OTP are required'
+            });
+        }
         const user = await User.findOne({ username });
         if (!user) {
             return res.status(404).json({
-                message: 'User not found',
+                code: 'USER_NOT_FOUND',
+                message: 'User not found'
             });
         }
-        if (String(user.otp.otpEmail) !== String(otpEmail) || Date.now() > user.otpExpiry) {
+        if (!user.otp || !user.otp.otpEmail) {
             return res.status(400).json({
-                message: 'Invalid or expired OTP',
+                code: 'NO_OTP',
+                message: 'No OTP found. Please request a new OTP.'
+            });
+        }
+        if (Date.now() > user.otpExpiry) {
+            user.otp = undefined;
+            user.otpExpiry = undefined;
+            await user.save();
+
+            return res.status(400).json({
+                code: 'OTP_EXPIRED',
+                message: 'OTP has expired. Please request a new OTP.'
+            });
+        }
+        const providedOtp = String(otpEmail).trim();
+        const storedOtp = String(user.otp.otpEmail).trim();
+        if (providedOtp !== storedOtp) {
+            return res.status(400).json({
+                code: 'INVALID_OTP',
+                message: 'Invalid OTP. Please try again.'
             });
         }
         user.isVerified = true;
@@ -210,82 +237,75 @@ module.exports.viewUser = async (req, res) => {
     }
 }
 
-
 module.exports.editUser = async (req, res) => {
     try {
         const { username } = req.params;
         const updates = req.body;
         const user = await User.findOne({ username: username });
-        console.log(req.body)
-        // jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
-        //     if (err) {
-        //         res.status(403).json({
-        //             message: "protected Route"
-        //         });
-        //     } else {
-        //         if (authorizedData) {
-        //             if (authorizedData.username !== user.username) {
-        //                 res.status(403).json({ message: "Unauthorized access to edit user's profile" });
-        //             }
-        //         } else {
-        //             res.status(401).json({ message: "Unauthorized access to edit user's profile" });
-        //         }
-        //     }
-        // });
-
-        if (!updates || Object.keys(updates).length === 0) {
-            return res.status(400).json({
-                message: "No fields provided for update",
-            });
-        }
-        if (user.isVerified === false) {
-            res.status(403).json({ message: "Account not verified. Please verify your account before editing your profile." });
-        }
-        const updatedUser = await User.findOneAndUpdate(
-            { _id: user._id },
-            { $set: updates },
-            { new: true, runValidators: true }
-        );
-
-        if (!updatedUser) {
-            return res.status(404).json({
-                message: "User not found",
-            });
-        }
-
-        jwt.sign(
-            {
-                username: updatedUser.username,
-                name: updatedUser.name,
-                email: updatedUser.email,
-                contactNumber: updatedUser.contactNumber,
-                address: updatedUser.address,
-                dateOfBirth: updatedUser.dateOfBirth,
-                currentJob: updatedUser.currentJob,
-                gender: updatedUser.gender,
-                governmentOfficial: updatedUser.governmentOfficial,
-                ismPassout: updatedUser.ismPassout,
-                batch: updatedUser.batch,
-                kartavyaVolunteer: updatedUser.kartavyaVolunteer,
-                yearsOfService: updatedUser.yearsOfService,
-                typeOfSponsor: updatedUser.typeOfSponsor
-            },
-            process.env.JWT_KEY,
-            { expiresIn: "30d" },
-            (err, token) => {
-                if (err) {
-                    return res.status(403).json({
-                        message: "Token generation failed",
-                    });
-                }
-
-                res.status(200).json({
-                    message: "User updated successfully",
-                    updatedUser,
-                    token
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                return res.status(403).json({
+                    message: "Protected Route"
                 });
             }
-        );
+
+            if (!authorizedData || authorizedData.username !== username) {
+                return res.status(401).json({
+                    message: "Unauthorized access to edit user's profile"
+                });
+            }
+
+            if (!updates || Object.keys(updates).length === 0) {
+                return res.status(400).json({
+                    message: "No fields provided for update",
+                });
+            }
+
+            if (user.isVerified === false) {
+                return res.status(403).json({
+                    message: "Account not verified. Please verify your account before editing your profile."
+                });
+            }
+
+            const updatedUser = await User.findOneAndUpdate(
+                { _id: user._id },
+                { $set: updates },
+                { new: true, runValidators: true }
+            );
+
+            if (!updatedUser) {
+                return res.status(404).json({
+                    message: "User not found",
+                });
+            }
+
+            const token = jwt.sign(
+                {
+                    username: updatedUser.username,
+                    name: updatedUser.name,
+                    email: updatedUser.email,
+                    contactNumber: updatedUser.contactNumber,
+                    address: updatedUser.address,
+                    dateOfBirth: updatedUser.dateOfBirth,
+                    currentJob: updatedUser.currentJob,
+                    gender: updatedUser.gender,
+                    governmentOfficial: updatedUser.governmentOfficial,
+                    ismPassout: updatedUser.ismPassout,
+                    batch: updatedUser.batch,
+                    kartavyaVolunteer: updatedUser.kartavyaVolunteer,
+                    yearsOfService: updatedUser.yearsOfService,
+                    typeOfSponsor: updatedUser.typeOfSponsor
+                },
+                process.env.JWT_KEY,
+                { expiresIn: "30d" }
+            );
+
+            res.status(200).json({
+                message: "User updated successfully",
+                updatedUser,
+                token
+            });
+        });
     } catch (err) {
         console.log(err)
         res.status(500).json({
@@ -378,15 +398,38 @@ module.exports.changePassword = async (req, res) => {
 
 module.exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.find({}).select('-salt -hash');
-        res.status(200).send(users);
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                return res.status(403).json({
+                    message: "Invalid token"
+                });
+            }
+
+            // Verify admin privileges
+            const admin = await User.findOne({ username: authorizedData.username });
+            if (!admin || admin.role !== 'admin') {
+                return res.status(403).json({
+                    message: "Only admin can view all users"
+                });
+            }
+
+            // Get all users with sensitive data removed
+            const users = await User.find({})
+                .select('-salt -hash -resetPasswordToken -resetPasswordExpires -otp -otpExpiry');
+
+            res.status(200).json({
+                users,
+                count: users.length
+            });
+        });
     } catch (err) {
+        console.error('Get all users error:', err);
         res.status(500).json({
             name: err.name,
-            error: err.message,
+            error: err.message
         });
     }
-}
+};
 
 module.exports.forgotPassword = async (req, res) => {
     try {
@@ -577,3 +620,128 @@ module.exports.getDashboard = async (req, res) => {
         res.status(401).json({ name: e.name, message: e.message });
     }
 }
+
+module.exports.sendBulkEmails = async (req, res) => {
+    try {
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                return res.status(403).json({
+                    message: "Invalid token"
+                });
+            }
+
+            // Find user in database
+            const user = await User.findOne({ username: authorizedData.username });
+            if (!user || user.role === 'regular') {
+                return res.status(403).json({
+                    message: "Only admin users can send bulk emails"
+                });
+            }
+            const { users, subject, message, templateOptions = {} } = req.body;
+
+            if (!users || !Array.isArray(users) || !subject || !message) {
+                return res.status(400).json({
+                    message: "Please provide users array, subject and message"
+                });
+            }
+
+            const targetUsers = await User.find({
+                email: { $in: users }
+            }).select('name email');
+
+            if (!targetUsers.length) {
+                return res.status(404).json({
+                    message: "No valid users found"
+                });
+            }
+
+            const emailPromises = targetUsers.map(user => {
+                const emailTemplate = generateEmailTemplate({
+                    title: subject,
+                    message: `Hello ${user.name}, <p>${message}</p>`,
+                    highlightBox: templateOptions.highlightBox || false,
+                    highlightContent: templateOptions.highlightContent,
+                    buttonLink: templateOptions.buttonLink,
+                    buttonText: templateOptions.buttonText,
+                    additionalContent: templateOptions.additionalContent || `
+                    <p>This is an automated message from Kartavya.</p>
+                    <p>Date: ${new Date().toLocaleString()}</p>
+                `
+                });
+
+                return sendEmail({
+                    to: user.email,
+                    subject: `Kartavya - ${subject}`,
+                    html: emailTemplate,
+                    text: message
+                });
+            });
+
+            await Promise.all(emailPromises);
+
+            res.status(200).json({
+                message: `Emails sent successfully to ${targetUsers.length} users`,
+                recipients: targetUsers.map(user => user.email)
+            });
+        });
+
+    } catch (err) {
+        console.error('Error sending emails:', err);
+        res.status(500).json({
+            name: err.name,
+            error: err.message
+        });
+    }
+};
+
+module.exports.deleteUser = async (req, res) => {
+    try {
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                return res.status(403).json({
+                    message: "Invalid token"
+                });
+            }
+            const adminUser = await User.findOne({ username: authorizedData.username });
+            if (!adminUser || adminUser.role !== 'admin') {
+                return res.status(403).json({
+                    message: "Only admin users can delete accounts"
+                });
+            }
+
+            const { userToDelete } = req.params;
+            const targetUser = await User.findOne({ _id: userToDelete });
+            if (!targetUser) {
+                return res.status(404).json({
+                    message: "User not found"
+                });
+            }
+
+            if (targetUser.role !== 'regular') {
+                return res.status(403).json({
+                    message: "Cannot delete admin users"
+                });
+            }
+            if (targetUser.profileImage) {
+                try {
+                    await deleteFromAzureBlob(targetUser.profileImage);
+                } catch (blobError) {
+                    console.error('Failed to delete profile image:', blobError);
+                }
+            }
+
+            // Delete user document
+            await User.deleteOne({ _id: targetUser._id });
+
+            res.status(200).json({
+                message: `User ${userToDelete} and associated data deleted successfully`
+            });
+        });
+    } catch (err) {
+        console.error('Delete user error:', err);
+        res.status(500).json({
+            name: err.name,
+            error: err.message
+        });
+    }
+};
