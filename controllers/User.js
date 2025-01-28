@@ -72,7 +72,7 @@ module.exports.registerUser = async (req, res, profilePictureUrl) => {
         user.setPassword(password);
         await user.save();
 
-        res.status(201).json({
+        return res.status(201).json({
             message: 'Registration successful! Please verify your account using the OTP sent to your email and mobile.',
         });
     } catch (err) {
@@ -86,7 +86,7 @@ module.exports.registerUser = async (req, res, profilePictureUrl) => {
             }
             console.log(err.name)
         }
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message
         })
@@ -132,14 +132,14 @@ module.exports.loginUser = async (req, res) => {
             { expiresIn: '1d' }
         );
 
-        res.status(200).json({
+        return res.status(200).json({
             message: 'Login successful',
             token,
             user: sanitizedUser
         });
     } catch (err) {
         console.log(err)
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message
         });
@@ -191,12 +191,12 @@ module.exports.verifyOtp = async (req, res) => {
         user.otp = undefined;
         user.otpExpiry = undefined;
         await user.save();
-        res.status(200).json({
+        return res.status(200).json({
             message: 'Account verified successfully! Please Login.',
         });
     } catch (err) {
         console.log(err)
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message,
         });
@@ -208,7 +208,7 @@ module.exports.viewUser = async (req, res) => {
     try {
         jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
             if (err) {
-                res.status(403).json({
+                return res.status(403).json({
                     message: "protected Route"
                 });
             } else {
@@ -224,16 +224,16 @@ module.exports.viewUser = async (req, res) => {
                             select: '-_id -sponsor'
                         });
                     if (user.isVerified === false) {
-                        res.status(403).json({ message: "Account not verified. Please verify your account before accessing your profile." });
+                        return res.status(403).json({ message: "Account not verified. Please verify your account before accessing your profile." });
                     }
-                    res.status(200).send(user);
+                    return res.status(200).send(user);
                 } else {
-                    res.status(401).json({ message: "Unauthorized access to user's profile" });
+                    return res.status(401).json({ message: "Unauthorized access to user's profile" });
                 }
             }
         });
     } catch (e) {
-        res.status(401).json({ name: e.name, message: e.message });
+        return res.status(401).json({ name: e.name, message: e.message });
     }
 }
 
@@ -300,7 +300,7 @@ module.exports.editUser = async (req, res) => {
                 { expiresIn: "30d" }
             );
 
-            res.status(200).json({
+            return res.status(200).json({
                 message: "User updated successfully",
                 updatedUser,
                 token
@@ -308,7 +308,7 @@ module.exports.editUser = async (req, res) => {
         });
     } catch (err) {
         console.log(err)
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message,
         });
@@ -390,7 +390,7 @@ module.exports.changePassword = async (req, res) => {
         });
     } catch (err) {
         console.error('Change password error:', err);
-        res.status(500).json({
+        return res.status(500).json({
             error: err.message
         });
     }
@@ -417,14 +417,14 @@ module.exports.getAllUsers = async (req, res) => {
             const users = await User.find({})
                 .select('-salt -hash -resetPasswordToken -resetPasswordExpires -otp -otpExpiry');
 
-            res.status(200).json({
+            return res.status(200).json({
                 users,
                 count: users.length
             });
         });
     } catch (err) {
         console.error('Get all users error:', err);
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message
         });
@@ -475,13 +475,13 @@ module.exports.forgotPassword = async (req, res) => {
             text: `To reset your password, visit: ${resetUrl}\nThis link will expire in 10 minutes.`
         });
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Password reset email sent",
         });
 
     } catch (err) {
         console.error('Error in forgotPassword:', err);
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message,
         });
@@ -536,13 +536,13 @@ module.exports.resetPassword = async (req, res) => {
             text: `Your password has been successfully reset. If you did not make this change, please contact us immediately.`
         });
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Password reset successful",
         });
 
     } catch (err) {
         console.error('Error in resetPassword:', err);
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message,
         });
@@ -577,49 +577,64 @@ module.exports.getDashboard = async (req, res) => {
     try {
         jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
             if (err) {
-                res.status(403).json({
-                    message: "protected Route"
+                return res.status(403).json({
+                    message: "Protected Route"
                 });
-            } else {
-                if (authorizedData) {
-                    const user = await User.findOne({ username: authorizedData.username })
-                        .select('-salt -hash -_id')
-                        .populate({
-                            path: 'donations',
-                            select: '-_id -user'
-                        })
-                        .populate({
-                            path: 'sponsoredStudents',
-                            select: '-_id -sponsor'
-                        });
-                    if (user.isVerified === false) {
-                        res.status(403).json({ message: "Account not verified. Please verify your account before accessing your profile." });
-                    }
-                    const documents = await Document.find({})
-                    const totalDonations = user.donations
-                        .filter(donation => donation.verified === true)
-                        .reduce((sum, donation) => sum + (donation.amount || 0), 0);
-
-                    const dashboardData = {
-                        totalDonations: totalDonations,
-                        childrenSponsored: user.sponsoredStudents.length,
-                        lastDonation: user.donations[0],
-                        recentDonations: user.donations
-                            .sort((a, b) => b.donationDate - a.donationDate)
-                            .slice(0, 5),
-                        documents: documents
-                    };
-                    res.status(200).json(dashboardData);
-
-                } else {
-                    res.status(401).json({ message: "Unauthorized access to user's profile" });
-                }
             }
+
+            if (!authorizedData) {
+                return res.status(401).json({
+                    message: "Unauthorized access to user's profile"
+                });
+            }
+
+            const user = await User.findOne({ username: authorizedData.username })
+                .select('-salt -hash -_id')
+                .populate({
+                    path: 'donations',
+                    select: '-_id -user'
+                })
+                .populate({
+                    path: 'sponsoredStudents',
+                    select: '-_id -sponsor'
+                });
+
+            if (!user) {
+                return res.status(404).json({
+                    message: "User not found"
+                });
+            }
+
+            if (user.isVerified === false) {
+                return res.status(403).json({
+                    message: "Account not verified. Please verify your account before accessing your profile."
+                });
+            }
+
+            const documents = await Document.find({});
+            const totalDonations = user.donations
+                .filter(donation => donation.verified === true)
+                .reduce((sum, donation) => sum + (donation.amount || 0), 0);
+
+            const dashboardData = {
+                totalDonations: totalDonations,
+                childrenSponsored: user.sponsoredStudents.length,
+                lastDonation: user.donations[0],
+                recentDonations: user.donations
+                    .sort((a, b) => b.donationDate - a.donationDate)
+                    .slice(0, 5),
+                documents: documents
+            };
+
+            return res.status(200).json(dashboardData);
         });
     } catch (e) {
-        res.status(401).json({ name: e.name, message: e.message });
+        return res.status(500).json({
+            name: e.name,
+            message: e.message
+        });
     }
-}
+};
 
 module.exports.sendBulkEmails = async (req, res) => {
     try {
@@ -679,7 +694,7 @@ module.exports.sendBulkEmails = async (req, res) => {
 
             await Promise.all(emailPromises);
 
-            res.status(200).json({
+            return res.status(200).json({
                 message: `Emails sent successfully to ${targetUsers.length} users`,
                 recipients: targetUsers.map(user => user.email)
             });
@@ -687,7 +702,7 @@ module.exports.sendBulkEmails = async (req, res) => {
 
     } catch (err) {
         console.error('Error sending emails:', err);
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message
         });
@@ -733,13 +748,13 @@ module.exports.deleteUser = async (req, res) => {
             // Delete user document
             await User.deleteOne({ _id: targetUser._id });
 
-            res.status(200).json({
+            return res.status(200).json({
                 message: `User ${userToDelete} and associated data deleted successfully`
             });
         });
     } catch (err) {
         console.error('Delete user error:', err);
-        res.status(500).json({
+        return res.status(500).json({
             name: err.name,
             error: err.message
         });

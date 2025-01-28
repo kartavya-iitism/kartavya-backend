@@ -37,7 +37,7 @@ module.exports.addContent = async (req, res) => {
         const newContent = new Model(content);
         await newContent.save();
 
-        res.status(201).json({
+        return res.status(201).json({
             message: `${type} added successfully`,
             content: newContent
         });
@@ -51,7 +51,7 @@ module.exports.addContent = async (req, res) => {
                 console.error('Failed to delete uploaded file:', deleteError);
             }
         }
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -63,13 +63,13 @@ module.exports.getAll = async (req, res) => {
             RecentUpdate.find().sort({ date: -1 })
         ]);
 
-        res.status(200).json({
+        return res.status(200).json({
             studentStories,
             academicMilestones,
             recentUpdates
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -120,13 +120,13 @@ module.exports.deleteContent = async (req, res) => {
             }
             await Model.deleteOne({ _id: id });
 
-            res.status(200).json({
+            return res.status(200).json({
                 message: `${type} deleted successfully`
             });
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({
+        return res.status(500).json({
             message: "Failed to delete content",
             error: error.message
         });

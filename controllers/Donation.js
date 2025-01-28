@@ -31,11 +31,11 @@ module.exports.donate = async (req, res, recieptUrl) => {
             user.donations.push(savedDonation._id);
             await user.save();
         }
-        res.status(201).json({ message: 'Donation made successfully', donation: savedDonation });
+        return res.status(201).json({ message: 'Donation made successfully', donation: savedDonation });
 
     } catch (error) {
         console.error('Error making donation:', error);
-        res.status(500).json({ error: 'Something went wrong' });
+        return res.status(500).json({ error: 'Something went wrong' });
     }
 };
 

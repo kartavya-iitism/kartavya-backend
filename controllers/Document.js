@@ -27,7 +27,7 @@ module.exports.uploadDocument = async (req, res) => {
 
         await document.save();
 
-        res.status(201).json({
+        return res.status(201).json({
             message: 'Document uploaded successfully',
             document
         });
@@ -41,7 +41,7 @@ module.exports.uploadDocument = async (req, res) => {
                 console.error('Failed to delete uploaded file:', deleteError);
             }
         }
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -57,8 +57,8 @@ module.exports.getAllDocuments = async (req, res) => {
         if (!user) {
             return res.status(403).json({ message: 'Unauthorized access' });
         }
-        res.status(200).json(documents);
+        return res.status(200).json(documents);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };

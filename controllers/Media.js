@@ -33,7 +33,7 @@ module.exports.addMedia = async (req, res) => {
 
             await media.save();
 
-            res.status(201).json({
+            return res.status(201).json({
                 message: "Media added successfully",
                 media
             });
@@ -46,7 +46,7 @@ module.exports.addMedia = async (req, res) => {
                 console.error('Failed to delete uploaded file:', deleteError);
             }
         }
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -64,9 +64,9 @@ module.exports.getAllMedia = async (req, res) => {
             videos: allMedia.filter(item => item.type === 'video')
         };
 
-        res.status(200).json(formatted);
+        return res.status(200).json(formatted);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -102,12 +102,12 @@ module.exports.deleteMedia = async (req, res) => {
             }
 
             await Media.deleteOne({ _id: req.params.id });
-            res.status(200).json({
+            return res.status(200).json({
                 message: "Media deleted successfully"
             });
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             error: error.message
         });
     }
