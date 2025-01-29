@@ -11,6 +11,7 @@ const StudentRoutes = require("./routes/Student");
 const newsAchievementsRoutes = require("./routes/NewsAchievements")
 const documentRoutes = require('./routes/Document');
 const mediaRoutes = require('./routes/Media');
+const contactRoutes = require('./routes/Contact');
 const path = require('path');
 const passport = require("passport");
 const cors = require("cors");
@@ -38,6 +39,7 @@ app.use("/api/donation", DonationRoutes);
 app.use('/api/news', newsAchievementsRoutes);
 app.use('/api/document', documentRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/contact', contactRoutes);
 
 
 app.use(express.static(path.join(__dirname, 'dist')));
