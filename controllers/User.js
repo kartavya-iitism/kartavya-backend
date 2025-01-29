@@ -790,8 +790,12 @@ module.exports.resendOtp = async (req, res) => {
                     message: 'User is already verified'
                 });
             }
+            let otpEmail = user.otp.otpEmail;
+            if (Date.now() > user.otpExpiry) {
+                otpEmail = crypto.randomInt(100000, 999999);
+                user.otp.otpEmail = otpEmail;
+            }
 
-            const otpEmail = user.otp.otpEmail;
             user.otpExpiry = Date.now() + 60 * 60 * 1000;
             await user.save();
 
