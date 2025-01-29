@@ -2,10 +2,11 @@ const express = require("express");
 const router = express.Router();
 const User = require("../controllers/User");
 const catchAsync = require("../utils/catchAsync");
-const { checkToken } = require("../middleware")
+const { checkToken, checkVerified } = require("../middleware")
 const multer = require("multer");
 const uploadToAzureBlob = require("../azureStorage");
 const passport = require('passport');
+
 require('../utils/passport');
 
 // Configure multer for file uploads
@@ -38,19 +39,22 @@ router.route("/view")
     .get(checkToken, User.viewUser);
 
 router.route("/:username/edit")
-    .put(checkToken, User.editUser);
+    .put(checkToken, checkVerified, User.editUser);
 
 router.route("/:username/changePassword")
-    .put(checkToken, User.changePassword);
+    .put(checkToken, checkVerified, User.changePassword);
 
 router.route("/verify")
     .post(User.verifyOtp);
 
+router.route('/resend-otp')
+    .post(checkToken, catchAsync(User.resendOtp));
+
 router.route("/getAllUsers")
-    .get(checkToken, User.getAllUsers)
+    .get(checkToken, checkVerified, User.getAllUsers)
 
 router.route("/dashboard")
-    .get(checkToken, User.getDashboard)
+    .get(checkToken, checkVerified, User.getDashboard)
 
 router.route("/failure")
     .get((req, res) => res.status(401).json({ message: "Incorrect username or password" }));
@@ -72,12 +76,13 @@ router.get('/auth/google/callback',
 
 router.post('/send-mails',
     checkToken,
+    checkVerified,
     catchAsync(User.sendBulkEmails)
 );
 
-
 router.delete('/delete/:userToDelete',
     checkToken,
+    checkVerified,
     catchAsync(User.deleteUser)
 );
 

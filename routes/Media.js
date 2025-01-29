@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Media = require('../controllers/Media');
-const { checkToken } = require('../middleware');
+const { checkToken, checkVerified } = require('../middleware');
 const multer = require('multer');
 const uploadToAzureBlob = require('../azureStorage');
 const catchAsync = require('../utils/catchAsync');
@@ -17,6 +17,7 @@ router.get('/all', catchAsync(Media.getAllMedia));
 // Add new media
 router.post('/add',
     checkToken,
+    checkVerified,
     upload.single('media'),
     catchAsync(uploadToAzureBlob),
     catchAsync(Media.addMedia)
@@ -25,6 +26,7 @@ router.post('/add',
 // Delete media
 router.delete('/delete/:id',
     checkToken,
+    checkVerified,
     catchAsync(Media.deleteMedia)
 );
 

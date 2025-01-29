@@ -223,9 +223,6 @@ module.exports.viewUser = async (req, res) => {
                             path: 'sponsoredStudents',
                             select: '-_id -sponsor'
                         });
-                    if (user.isVerified === false) {
-                        return res.status(403).json({ message: "Account not verified. Please verify your account before accessing your profile." });
-                    }
                     return res.status(200).send(user);
                 } else {
                     return res.status(401).json({ message: "Unauthorized access to user's profile" });
@@ -757,6 +754,71 @@ module.exports.deleteUser = async (req, res) => {
         return res.status(500).json({
             name: err.name,
             error: err.message
+        });
+    }
+};
+
+module.exports.resendOtp = async (req, res) => {
+    try {
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                return res.status(403).json({
+                    code: 'INVALID_TOKEN',
+                    message: 'Invalid token'
+                });
+            }
+
+            const { username } = req.body;
+            if (!username || username !== authorizedData.username) {
+                return res.status(400).json({
+                    code: 'INVALID_INPUT',
+                    message: 'Invalid username or unauthorized access'
+                });
+            }
+
+            const user = await User.findOne({ username });
+            if (!user) {
+                return res.status(404).json({
+                    code: 'USER_NOT_FOUND',
+                    message: 'User not found'
+                });
+            }
+
+            if (user.isVerified) {
+                return res.status(400).json({
+                    code: 'ALREADY_VERIFIED',
+                    message: 'User is already verified'
+                });
+            }
+
+            const otpEmail = user.otp.otpEmail;
+            user.otpExpiry = Date.now() + 60 * 60 * 1000;
+            await user.save();
+
+            const emailTemplate = generateEmailTemplate({
+                title: 'New OTP for Kartavya Account Verification',
+                message: `Hello ${user.name}, Here is your new verification OTP:`,
+                highlightBox: true,
+                highlightContent: otpEmail,
+                additionalContent: '<p>This OTP will expire in 60 minutes.</p>'
+            });
+
+            await sendEmail({
+                to: user.email,
+                subject: 'Kartavya - New Verification OTP',
+                html: emailTemplate,
+                text: `Your new email verification OTP is: ${otpEmail}. This OTP will expire in 60 minutes.`
+            });
+
+            return res.status(200).json({
+                message: 'New OTP sent successfully'
+            });
+        });
+    } catch (error) {
+        console.error('Resend OTP error:', error);
+        return res.status(500).json({
+            name: error.name,
+            error: error.message
         });
     }
 };
