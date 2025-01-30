@@ -44,11 +44,6 @@ const UserSchema = new Schema({
     },
     yearsOfServiceStart: String,
     yearsOfServiceEnd: String,
-    typeOfSponsor: {
-        type: String,
-        enum: ['Student', 'General', 'Both'],
-        default: 'General'
-    },
     currentJob: String,
     sponsoredStudents: [
         {
@@ -62,6 +57,10 @@ const UserSchema = new Schema({
             ref: 'Donation'
         }
     ],
+    totalDonation: {
+        type: Number,
+        default: 0
+    },
     username: {
         type: String,
         required: true,
@@ -75,6 +74,9 @@ const UserSchema = new Schema({
     dateOfRegistration: {
         type: Date,
         default: Date.now
+    },
+    lastDonationDate: {
+        type: Date
     },
     resetPasswordToken: {
         type: String,

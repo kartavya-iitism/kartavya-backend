@@ -3,6 +3,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../utils/mailer');
 const generateEmailTemplate = require('../utils/mailTemplate');
+const deleteFromAzureBlob = require('../utils/deleteFromBlob');
 
 module.exports.donate = async (req, res, recieptUrl) => {
     try {
@@ -86,7 +87,15 @@ module.exports.verifyDonation = async (req, res) => {
 
             const donationId = req.params.donationId;
             const donation = await Donation.findOne({ _id: donationId }).populate('user');
+            const donor = await User.findOne({ _id: donation.user })
+            // user.totalDonation += (donation.amount);
+            if (donor) {
+                donor.totalDonation += (donation.amount);
+                donor.lastDonationDate = Date.now();
+                await donor.save();
+            }
 
+            user.lastDonationDate = Date.now();
             donation.verified = true;
             donation.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
             await donation.save();
@@ -181,21 +190,29 @@ module.exports.bulkDeleteDonations = async (req, res) => {
             if (err) {
                 return res.status(403).json({ message: "Protected Route" });
             }
+
             const admin = await User.findOne({ username: authorizedData.username });
             if (!admin || admin.role !== 'admin') {
                 return res.status(403).json({ message: "Only admin can delete donations" });
             }
+
             const { donationIds } = req.body;
             if (!donationIds || !Array.isArray(donationIds)) {
                 return res.status(400).json({ message: "Please provide array of donation IDs" });
             }
-            const donations = await Donation.find({ _id: { $in: donationIds } });
+
+            const donations = await Donation.find({ _id: { $in: donationIds } }).populate('user');
             let successCount = 0;
             let failureCount = 0;
+
             for (const donation of donations) {
                 try {
-                    if (donation.receiptUrl) {
-                        await deleteFromAzureBlob(donation.receiptUrl);
+                    await User.findByIdAndUpdate(
+                        donation.user._id,
+                        { $pull: { donations: donation._id } }
+                    );
+                    if (donation.recieptUrl) {
+                        await deleteFromAzureBlob(donation.recieptUrl);
                     }
                     await Donation.deleteOne({ _id: donation._id });
                     successCount++;

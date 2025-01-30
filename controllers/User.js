@@ -609,9 +609,7 @@ module.exports.getDashboard = async (req, res) => {
             }
 
             const documents = await Document.find({});
-            const totalDonations = user.donations
-                .filter(donation => donation.verified === true)
-                .reduce((sum, donation) => sum + (donation.amount || 0), 0);
+            const totalDonations = user.totalDonation
 
             const dashboardData = {
                 totalDonations: totalDonations,
