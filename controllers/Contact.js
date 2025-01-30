@@ -6,7 +6,7 @@ const generateEmailTemplate = require('../utils/mailTemplate');
 
 module.exports.submitForm = async (req, res) => {
     try {
-        const { name, email, subject, message } = req.body;
+        const { name, email, subject, message, contactNumber } = req.body;
 
         if (!name || !email || !subject || !message) {
             return res.status(400).json({
@@ -17,6 +17,7 @@ module.exports.submitForm = async (req, res) => {
         const contact = new Contact({
             name,
             email,
+            contactNumber,
             subject,
             message
         });
