@@ -6,7 +6,7 @@ const generateEmailTemplate = ({
     buttonLink,
     buttonText,
     additionalContent,
-    logoUrl = 'http://kartavya.org/static/media/kartavya-logo.0dcbd6827aa31b9c5aa2.png'
+    logoUrl = 'https://divyanshgupta351.blob.core.windows.net/katavya-test-storage/logo.png'
 }) => {
     return `<!DOCTYPE html>
     <html>
