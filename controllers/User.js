@@ -264,6 +264,31 @@ module.exports.editUser = async (req, res) => {
                 });
             }
 
+            if (updates.email && updates.email !== user.email) {
+                const otpEmail = crypto.randomInt(100000, 999999);
+
+                updates.otp = {
+                    ...user.otp,
+                    otpEmail: otpEmail
+                };
+                updates.otpExpiry = Date.now() + 60 * 60 * 1000; // 60 minutes
+                updates.isVerified = false;
+                const emailTemplate = generateEmailTemplate({
+                    title: 'Verify Your New Email',
+                    message: `Hello ${user.name}, Please verify your new email using the OTP below:`,
+                    highlightBox: true,
+                    highlightContent: otpEmail,
+                    additionalContent: '<p>This OTP will expire in 60 minutes.</p>'
+                });
+
+                await sendEmail({
+                    to: updates.email,
+                    subject: 'Kartavya - Verify Your New Email',
+                    html: emailTemplate,
+                    text: `Your email verification OTP is: ${otpEmail}. This OTP will expire in 60 minutes.`
+                });
+            }
+
             const updatedUser = await User.findOneAndUpdate(
                 { _id: user._id },
                 { $set: updates },
