@@ -129,7 +129,7 @@ module.exports.loginUser = async (req, res) => {
         const token = jwt.sign(
             sanitizedUser,
             process.env.JWT_KEY,
-            { expiresIn: '1d' }
+            { expiresIn: '7d' }
         );
 
         return res.status(200).json({
