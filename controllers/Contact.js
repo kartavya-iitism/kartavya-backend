@@ -175,23 +175,92 @@ module.exports.bulkNotifyContacts = async (req, res) => {
 
             await Promise.all(emailPromises);
 
-            // Update contact records
-            await Contact.updateMany(
-                { email: { $in: emails } },
-                {
-                    $set: {
-                        response: message,
-                        isResponded: true,
-                        respondedAt: new Date()
-                    }
-                }
-            );
-
             return res.status(200).json({
                 success: true,
                 message: "Notifications sent successfully",
                 notifiedCount: contacts.length,
                 totalRequested: emails.length
+            });
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+module.exports.updateStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, resolutionNotes } = req.body;
+
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) return res.status(403).json({ message: "Invalid token" });
+
+            const user = await User.findOne({ username: authorizedData.username });
+            if (!user || user.role !== 'admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: "Only admin can update contact status"
+                });
+            }
+
+            const validStatuses = ['pending', 'in-progress', 'resolved', 'closed'];
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid status value"
+                });
+            }
+
+            if (status === 'resolved' && !resolutionNotes) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Resolution notes required when marking as resolved"
+                });
+            }
+
+            const contact = await Contact.findByIdAndUpdate(
+                id,
+                {
+                    status,
+                    resolutionNotes,
+                    resolvedBy: user._id,
+                    resolvedAt: status === 'resolved' ? Date.now() : null
+                },
+                { new: true }
+            );
+
+            if (!contact) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Contact not found"
+                });
+            }
+
+            // Send email notification if resolved
+            if (status === 'resolved') {
+                const emailTemplate = generateEmailTemplate({
+                    title: 'Your Query Has Been Resolved',
+                    message: `Hello ${contact.name}, Your query has been resolved.`,
+                    additionalContent: `
+                        <p>Resolution Notes: ${resolutionNotes}</p>
+                        <p>Original Query: ${contact.message}</p>
+                    `
+                });
+
+                await sendEmail({
+                    to: contact.email,
+                    subject: 'Kartavya - Query Resolution',
+                    html: emailTemplate
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Contact status updated",
+                contact
             });
         });
     } catch (error) {

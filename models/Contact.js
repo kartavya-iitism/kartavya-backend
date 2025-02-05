@@ -26,18 +26,31 @@ const contactSchema = new Schema({
         type: Date,
         default: Date.now
     },
-    response: {
+    status: {
+        type: String,
+        enum: ['pending', 'in-progress', 'resolved', 'closed'],
+        default: 'pending'
+    },
+    resolvedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    resolutionNotes: {
         type: String,
         default: null
     },
-    isResponded: {
-        type: Boolean,
-        default: false
-    },
-    respondedAt: {
+    resolvedAt: {
         type: Date,
         default: null
     }
 }, { timestamps: true });
+
+contactSchema.pre('save', function (next) {
+    if (this.isModified('status') && this.status === 'resolved') {
+        this.resolvedAt = new Date();
+    }
+    next();
+});
 
 module.exports = mongoose.model('Contact', contactSchema);
