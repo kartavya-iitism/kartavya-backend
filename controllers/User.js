@@ -578,22 +578,38 @@ module.exports.googleCallback = async (req, res) => {
             username: user.username,
             name: user.name,
             email: user.email,
-            role: user.role
+            contactNumber: user.contactNumber || null,
+            address: user.address || null,
+            dateOfBirth: user.dateOfBirth || null,
+            gender: user.gender || null,
+            currentJob: user.currentJob || null,
+            governmentOfficial: user.governmentOfficial || false,
+            ismPassout: user.ismPassout || false,
+            batch: user.batch || null,
+            kartavyaVolunteer: user.kartavyaVolunteer || false,
+            yearsOfService: user.yearsOfService || null,
+            typeOfSponsor: user.typeOfSponsor || null,
+            role: user.role || 'regular'
         };
 
         const token = jwt.sign(
             sanitizedUser,
             process.env.JWT_KEY,
-            { expiresIn: '1d' }
+            { expiresIn: '7d' }
         );
 
-        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+        const queryParams = new URLSearchParams({
+            token,
+            user: JSON.stringify(sanitizedUser)
+        }).toString();
+
+        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?${queryParams}`);
+
     } catch (error) {
         console.error('Google auth error:', error);
         res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
     }
 };
-
 
 module.exports.getDashboard = async (req, res) => {
     try {
