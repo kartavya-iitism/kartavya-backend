@@ -12,11 +12,13 @@ const newsAchievementsRoutes = require("./routes/NewsAchievements")
 const documentRoutes = require('./routes/Document');
 const mediaRoutes = require('./routes/Media');
 const contactRoutes = require('./routes/Contact');
+const adminRoutes = require('./routes/Admin');
 const path = require('path');
 const passport = require("passport");
 const cors = require("cors");
 const dbUrl = process.env.DB_URL;
 const port = process.env.PORT || 3000;
+
 
 
 mongoose.connect(dbUrl);
@@ -40,6 +42,7 @@ app.use('/api/news', newsAchievementsRoutes);
 app.use('/api/document', documentRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 app.use(express.static(path.join(__dirname, 'dist')));

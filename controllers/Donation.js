@@ -233,3 +233,81 @@ module.exports.bulkDeleteDonations = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
+module.exports.donateItem = async (req, res) => {
+    try {
+        const {
+            name,
+            email,
+            contactNumber,
+            itemType,
+            itemDescription,
+            quantity,
+            pickupAddress
+        } = req.body;
+
+        if (!name || !email || !contactNumber || !itemType || !itemDescription || !quantity || !pickupAddress) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+
+        const adminEmailTemplate = generateEmailTemplate({
+            title: 'New Item Donation Offer',
+            message: 'A new item donation has been offered:',
+            highlightBox: true,
+            highlightContent: `
+                Donor: ${name}<br/>
+                Contact: ${contactNumber}<br/>
+                Email: ${email}<br/>
+            `,
+            additionalContent: `
+                <h3>Donation Details:</h3>
+                <p>Item Type: ${Array.isArray(itemType) ? itemType.join(', ') : itemType}</p>
+                <p>Description: ${itemDescription}</p>
+                <p>Quantity: ${quantity}</p>
+                <p>Pickup Address: ${pickupAddress}</p>
+            `
+        });
+
+        const donorEmailTemplate = generateEmailTemplate({
+            title: 'Thank You for Your Donation Offer',
+            message: `Dear ${name}, Thank you for offering to donate items to Kartavya.`,
+            highlightBox: true,
+            highlightContent: 'Our team will contact you shortly to arrange pickup.',
+            additionalContent: `
+                <h3>Your Donation Details:</h3>
+                <p>Item Type: ${Array.isArray(itemType) ? itemType.join(', ') : itemType}</p>
+                <p>Description: ${itemDescription}</p>
+                <p>Quantity: ${quantity}</p>
+                <p>Pickup Address: ${pickupAddress}</p>
+            `
+        });
+
+        await Promise.all([
+            sendEmail({
+                to: process.env.ADMIN_EMAIL,
+                subject: 'New Item Donation Offer',
+                html: adminEmailTemplate
+            }),
+            sendEmail({
+                to: email,
+                subject: 'Kartavya - Item Donation Confirmation',
+                html: donorEmailTemplate
+            })
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Thank you for your donation offer. We will contact you shortly.'
+        });
+
+    } catch (error) {
+        console.error('Item donation notification error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to process donation offer'
+        });
+    }
+};
