@@ -102,7 +102,7 @@ module.exports.verifyDonation = async (req, res) => {
 
             const emailTemplate = generateEmailTemplate({
                 title: 'Donation Verified',
-                message: `Hello ${donation.user.name}, Your donation of ₹${donation.amount} has been verified.`,
+                message: `Hello ${donation.name}, Your donation of ₹${donation.amount} has been verified.`,
                 highlightBox: true,
                 highlightContent: `₹${donation.amount}`,
                 additionalContent: `
@@ -113,7 +113,7 @@ module.exports.verifyDonation = async (req, res) => {
             });
 
             await sendEmail({
-                to: donation.user.email,
+                to: donation.email,
                 subject: 'Kartavya - Donation Verified',
                 html: emailTemplate,
                 text: `Your donation of ₹${donation.amount} has been verified.`
@@ -149,7 +149,7 @@ module.exports.rejectDonation = async (req, res) => {
 
             const emailTemplate = generateEmailTemplate({
                 title: 'Donation Rejected',
-                message: `Hello ${donation.user.name}, Your donation of ₹${donation.amount} has been rejected.`,
+                message: `Hello ${donation.name}, Your donation of ₹${donation.amount} has been rejected.`,
                 highlightBox: true,
                 highlightContent: 'Rejected',
                 additionalContent: `
@@ -161,7 +161,7 @@ module.exports.rejectDonation = async (req, res) => {
             });
 
             await sendEmail({
-                to: donation.user.email,
+                to: donation.email,
                 subject: 'Kartavya - Donation Rejected',
                 html: emailTemplate,
                 text: `
