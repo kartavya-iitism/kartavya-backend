@@ -32,7 +32,62 @@ module.exports.donate = async (req, res, recieptUrl) => {
             user.donations.push(savedDonation._id);
             await user.save();
         }
-        return res.status(201).json({ message: 'Donation made successfully', donation: savedDonation });
+
+        // Generate donor email template
+        const donorEmailTemplate = generateEmailTemplate({
+            title: 'Thank You for Your Donation',
+            message: `Dear ${name}, Thank you for your generous donation to Kartavya.`,
+            highlightBox: true,
+            highlightContent: `₹${amount}`,
+            additionalContent: `
+                <h3>Donation Details:</h3>
+                <p>Date: ${new Date(donationDate).toLocaleDateString()}</p>
+                <p>Amount: ₹${amount}</p>
+                <p>Children Sponsored: ${numChild || 0}</p>
+                <p>Reference ID: ${savedDonation._id}</p>
+                <p>Status: Pending Verification</p>
+                <p>We will verify your donation and send you a confirmation email.</p>
+            `
+        });
+
+        // Generate admin notification email
+        const adminEmailTemplate = generateEmailTemplate({
+            title: 'New Donation Received',
+            message: 'A new donation has been submitted:',
+            highlightBox: true,
+            highlightContent: `
+                Donor: ${name}
+                Amount: ₹${amount}
+                Contact: ${contactNumber}
+                Email: ${email}
+                Children: ${numChild || 0}
+            `,
+            additionalContent: `
+                <h3>Donation Details:</h3>
+                <p>Date: ${new Date(donationDate).toLocaleDateString()}</p>
+                <p>Reference ID: ${savedDonation._id}</p>
+                <p>Receipt: ${recieptUrl ? 'Uploaded' : 'Not uploaded'}</p>
+            `
+        });
+
+        // Send emails in parallel
+        await Promise.all([
+            sendEmail({
+                to: email,
+                subject: 'Kartavya - Donation Received',
+                html: donorEmailTemplate
+            }, 'admin'),
+            sendEmail({
+                to: process.env.ADMIN_EMAIL,
+                subject: 'New Donation Submission',
+                html: adminEmailTemplate
+            }, 'admin')
+        ]);
+
+        return res.status(201).json({
+            message: 'Donation made successfully. Please check your email for confirmation.',
+            donation: savedDonation
+        });
 
     } catch (error) {
         console.error('Error making donation:', error);
@@ -117,7 +172,7 @@ module.exports.verifyDonation = async (req, res) => {
                 subject: 'Kartavya - Donation Verified',
                 html: emailTemplate,
                 text: `Your donation of ₹${donation.amount} has been verified.`
-            });
+            }, 'admin');
 
             return res.status(200).json({ message: 'Donation Verified' });
         });
@@ -174,7 +229,7 @@ module.exports.rejectDonation = async (req, res) => {
                     
                     Thank you for your understanding.
                 `
-            });
+            }, 'admin');
 
             return res.status(200).json({ message: 'Donation Rejected' });
         });
