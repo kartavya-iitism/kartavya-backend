@@ -78,7 +78,7 @@ module.exports.donate = async (req, res, recieptUrl) => {
                 html: donorEmailTemplate
             }, 'admin'),
             sendEmail({
-                to: process.env.ADMIN_EMAIL,
+                to: process.env.EMAIL_ADMIN,
                 subject: 'New Donation Submission',
                 html: adminEmailTemplate
             }, 'admin')
@@ -342,7 +342,7 @@ module.exports.donateItem = async (req, res) => {
 
         await Promise.all([
             sendEmail({
-                to: process.env.ADMIN_EMAIL,
+                to: process.env.EMAIL_ADMIN,
                 subject: 'New Item Donation Offer',
                 html: adminEmailTemplate
             }),
