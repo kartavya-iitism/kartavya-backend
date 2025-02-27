@@ -1,36 +1,122 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const mongoose = require("mongoose");
 
-
-const StudentSchema = new Schema({
-    serialNumber: String,
-    name: String,
-    fatherName: String,
-    motherName: String,
-    address: String,
-    school: String,
-    dateOfBirth: Date,
-    gender: String,
-    grade: String,
-    familyIncome: Number,
-    profileImage: String,
-    results: [
-        {
-            term: String,
-            subject: String,
-            marks: Number,
-            remarks: String
-        }
-    ],
-    comment: String,
-    sponsored: {
-        type: Boolean,
-        default: false
+const studentSchema = new mongoose.Schema({
+    studentName: {
+        type: String,
+        required: true,
     },
-    sponsor: {
-        type: Schema.Types.ObjectId,
-        ref: 'Sponsor'
-    }
+    rollNumber: {
+        type: String,
+        required: true,
+    },
+    gender: {
+        type: String,
+        required: true,
+    },
+    dob: {
+        type: Date,
+        required: true,
+    },
+    profilePhoto: {
+        type: String,
+        required: false,
+    },
+    result: {
+        type: String,
+        required: false,
+    },
+    class: {
+        type: String,
+        required: false,
+    },
+    school: {
+        type: String,
+        required: false,
+    },
+    fathersName: {
+        type: String,
+        required: true,
+    },
+    fathersOccupation: {
+        type: String,
+        required: false,
+    },
+    mothersName: {
+        type: String,
+        required: false,
+    },
+    mothersOccupation: {
+        type: String,
+        required: false,
+    },
+    centre: {
+        type: String,
+        required: true,
+    },
+    address: {
+        type: String,
+        required: false,
+    },
+    contactNumber: {
+        type: String,
+        required: false,
+    },
+    annualIncome: {
+        type: Number,
+        required: false,
+    },
+    currentSession: {
+        type: String,
+        required: false,
+    },
+    sponsorshipStatus: {
+        type: Boolean,
+        required: false,
+        default: false,
+    },
+    annualFees: {
+        type: Number,
+        required: false,
+    },
+    sponsorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: false,
+        ref: "User",
+    },
+    sponsorshipPercent: {
+        type: Number,
+        required: false,
+        default: 0,
+    },
+    activeStatus: {
+        type: Boolean,
+        required: false,
+        default: true,
+    },
+    aadhar: {
+        type: Boolean,
+        default: false,
+    },
+    domicile: {
+        type: Boolean,
+        default: false,
+    },
+    birthCertificate: {
+        type: Boolean,
+        default: false,
+    },
+    disability: {
+        type: Boolean,
+        default: false,
+    },
+    singleParent: {
+        type: Boolean,
+        default: false,
+    },
+    relevantCertificate: {
+        type: Boolean,
+        default: false,
+    },
 });
 
-module.exports = mongoose.model('Student', StudentSchema);
+module.exports = mongoose.model("Students", studentSchema);
