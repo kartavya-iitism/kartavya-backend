@@ -1,122 +1,113 @@
 const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 
-const studentSchema = new mongoose.Schema({
+const studentSchema = new Schema({
     studentName: {
         type: String,
-        required: true,
+        required: [true, 'Student name is required'],
+        trim: true
     },
     rollNumber: {
         type: String,
-        required: true,
+        required: [true, 'Roll number is required'],
+        unique: true
     },
     gender: {
         type: String,
-        required: true,
+        required: [true, 'Gender is required'],
+        enum: ['Male', 'Female', 'Other']
     },
     dob: {
         type: Date,
-        required: true,
+        required: [true, 'Date of birth is required']
     },
     profilePhoto: {
-        type: String,
-        required: false,
+        type: String
     },
-    result: {
-        type: String,
-        required: false,
-    },
-    class: {
-        type: String,
-        required: false,
-    },
-    school: {
-        type: String,
-        required: false,
-    },
+    result: String,
+    class: String,
+    school: String,
     fathersName: {
         type: String,
-        required: true,
+        required: [true, 'Father\'s name is required'],
+        trim: true
     },
-    fathersOccupation: {
-        type: String,
-        required: false,
-    },
-    mothersName: {
-        type: String,
-        required: false,
-    },
-    mothersOccupation: {
-        type: String,
-        required: false,
-    },
+    fathersOccupation: String,
+    mothersName: String,
+    mothersOccupation: String,
     centre: {
         type: String,
-        required: true,
+        required: [true, 'Centre is required']
     },
-    address: {
-        type: String,
-        required: false,
-    },
+    address: String,
     contactNumber: {
         type: String,
-        required: false,
+        validate: {
+            validator: function (v) {
+                return /\d{10}/.test(v);
+            },
+            message: props => `${props.value} is not a valid phone number!`
+        }
     },
     annualIncome: {
         type: Number,
-        required: false,
+        min: [0, 'Annual income cannot be negative']
     },
-    currentSession: {
-        type: String,
-        required: false,
-    },
+    currentSession: String,
     sponsorshipStatus: {
         type: Boolean,
-        required: false,
-        default: false,
+        default: false
     },
     annualFees: {
         type: Number,
-        required: false,
+        min: [0, 'Annual fees cannot be negative']
     },
     sponsorId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: false,
-        ref: "User",
+        type: Schema.Types.ObjectId,
+        ref: "User"
     },
     sponsorshipPercent: {
         type: Number,
-        required: false,
         default: 0,
+        min: [0, 'Sponsorship percentage cannot be negative'],
+        max: [100, 'Sponsorship percentage cannot exceed 100']
     },
     activeStatus: {
         type: Boolean,
-        required: false,
-        default: true,
+        default: true
     },
     aadhar: {
         type: Boolean,
-        default: false,
+        default: false
     },
     domicile: {
         type: Boolean,
-        default: false,
+        default: false
     },
     birthCertificate: {
         type: Boolean,
-        default: false,
+        default: false
     },
     disability: {
         type: Boolean,
-        default: false,
+        default: false
     },
     singleParent: {
         type: Boolean,
-        default: false,
+        default: false
     },
     relevantCertificate: {
         type: Boolean,
-        default: false,
-    },
+        default: false
+    }
+}, {
+    timestamps: true
 });
 
-module.exports = mongoose.model("Students", studentSchema);
+// Add indexes
+studentSchema.index({ rollNumber: 1 }, { unique: true });
+studentSchema.index({ centre: 1 });
+studentSchema.index({ sponsorId: 1 });
+
+const Student = mongoose.model("Student", studentSchema);
+module.exports = Student;
