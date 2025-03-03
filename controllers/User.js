@@ -634,7 +634,9 @@ module.exports.getDashboard = async (req, res) => {
                 })
                 .populate({
                     path: 'sponsoredStudents',
-                    select: '-_id -sponsor'
+                    select: '-_id -sponsorId',
+                    model: 'Student',
+                    options: { sort: { 'updatedAt': -1 } }
                 });
 
             if (!user) {
@@ -650,7 +652,7 @@ module.exports.getDashboard = async (req, res) => {
             }
 
             const documents = await Document.find({});
-            const totalDonations = user.totalDonation
+            const totalDonations = user.totalDonation;
 
             const dashboardData = {
                 totalDonations: totalDonations,
@@ -659,7 +661,8 @@ module.exports.getDashboard = async (req, res) => {
                 recentDonations: user.donations
                     .sort((a, b) => b.donationDate - a.donationDate)
                     .slice(0, 5),
-                documents: documents
+                documents: documents,
+                sponsoredStudents: user.sponsoredStudents
             };
 
             return res.status(200).json(dashboardData);
