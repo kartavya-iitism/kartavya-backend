@@ -97,5 +97,11 @@ router.delete('/delete/:userToDelete',
     catchAsync(User.deleteUser)
 );
 
+router.get('/check-login-type/:username',
+    checkToken,
+    checkVerified,
+    User.checkLoginType
+)
+
 
 module.exports = router;

@@ -868,3 +868,36 @@ module.exports.resendOtp = async (req, res) => {
         });
     }
 };
+
+
+module.exports.checkLoginType = async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        if (!username) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username parameter is required'
+            });
+        }
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        const isGoogleAccount = !!user.googleId;
+        return res.status(200).json({
+            success: true,
+            isGoogleAccount,
+            hasPassword: !!user.password
+        });
+    } catch (error) {
+        console.error('Error checking login type:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error while checking login type'
+        });
+    }
+};
