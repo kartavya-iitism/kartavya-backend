@@ -26,8 +26,8 @@ const generateEmailTemplate = ({
                 margin: 0 auto;
             }
             .header {
-                background: #003366;
-                color: #ffffff;
+                background: #ffffff;
+                color: #003366;
                 padding: 20px;
                 text-align: center;
             }
