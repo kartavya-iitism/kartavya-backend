@@ -20,7 +20,7 @@ module.exports.addMedia = async (req, res) => {
                 });
             }
 
-            const { type, title, category, description, tags } = req.body;
+            const { type, title, category, description, tags, date } = req.body;
 
             const media = new Media({
                 type,
@@ -28,7 +28,8 @@ module.exports.addMedia = async (req, res) => {
                 url: type === 'photo' ? req.fileUrl : req.body.url,
                 category,
                 description,
-                tags: tags ? tags.split(',').map(tag => tag.trim()) : []
+                tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+                date: date ? new Date(date) : new Date() 
             });
 
             await media.save();
