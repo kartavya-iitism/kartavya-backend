@@ -901,3 +901,87 @@ module.exports.checkLoginType = async (req, res) => {
         });
     }
 };
+
+module.exports.getLoggedInUser = async (req, res) => {
+    try {
+        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
+            if (err) {
+                return res.status(403).json({
+                    message: "Unauthorized - Invalid token"
+                });
+            }
+
+            if (!authorizedData) {
+                return res.status(401).json({
+                    message: "Unauthorized - No user data in token"
+                });
+            }
+
+            try {
+                const user = await User.findOne({ username: authorizedData.username })
+                    .select('-salt -hash')
+                    .populate({
+                        path: 'donations',
+                        select: 'amount donationDate'
+                    })
+                    .populate({
+                        path: 'sponsoredStudents',
+                        select: 'studentName profilePhoto rollNumber class school centre gender fathersName contactNumber sponsorshipStatus'
+                    });
+
+                if (!user) {
+                    return res.status(404).json({
+                        message: "User not found"
+                    });
+                }
+
+                // Calculate total donations count
+                const totalDonations = user.donations ? user.donations.length : 0;
+
+                // Get last donation
+                const lastDonation = user.donations && user.donations.length > 0
+                    ? user.donations[0]
+                    : null;
+
+                // Prepare response with all necessary data
+                const userData = {
+                    username: user.username,
+                    name: user.name,
+                    email: user.email,
+                    contactNumber: user.contactNumber,
+                    address: user.address,
+                    dateOfBirth: user.dateOfBirth,
+                    gender: user.gender,
+                    currentJob: user.currentJob,
+                    governmentOfficial: user.governmentOfficial,
+                    ismPassout: user.ismPassout,
+                    batch: user.batch,
+                    kartavyaVolunteer: user.kartavyaVolunteer,
+                    typeOfSponsor: user.typeOfSponsor,
+                    role: user.role,
+                    profileImage: user.profileImage,
+                    isVerified: user.isVerified,
+                    totalDonations: totalDonations,
+                    childrenSponsored: user.sponsoredStudents ? user.sponsoredStudents.length : 0,
+                    lastDonation: lastDonation,
+                    donations: user.donations,
+                    sponsoredStudents: user.sponsoredStudents
+                };
+
+                return res.status(200).json(userData);
+            } catch (innerErr) {
+                console.error('Error fetching user details:', innerErr);
+                return res.status(500).json({
+                    message: "Error fetching user data",
+                    error: innerErr.message
+                });
+            }
+        });
+    } catch (error) {
+        console.error('Error getting logged-in user:', error);
+        return res.status(500).json({
+            message: 'Server error while fetching user data',
+            error: error.message
+        });
+    }
+};
