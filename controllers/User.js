@@ -615,9 +615,7 @@ module.exports.getDashboard = async (req, res) => {
     try {
         jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
             if (err) {
-                return res.status(403).json({
-                    message: "Protected Route"
-                });
+                return res.status(403).json({ message: "Protected Route" });
             }
 
             if (!authorizedData) {
@@ -627,53 +625,65 @@ module.exports.getDashboard = async (req, res) => {
             }
 
             const user = await User.findOne({ username: authorizedData.username })
-                .select('-salt -hash -_id')
+                .select('-salt -hash')
                 .populate({
                     path: 'donations',
-                    select: '-_id -user'
+                    select: 'amount donationDate description'
                 })
                 .populate({
                     path: 'sponsoredStudents',
-                    select: '-_id -sponsorId',
-                    model: 'Student',
-                    options: { sort: { 'updatedAt': -1 } }
+                    select: 'studentName rollNumber class school profilePhoto sponsorshipStatus'
                 });
 
             if (!user) {
-                return res.status(404).json({
-                    message: "User not found"
-                });
+                return res.status(404).json({ message: "User not found" });
             }
 
-            if (user.isVerified === false) {
+            if (!user.isVerified) {
                 return res.status(403).json({
-                    message: "Account not verified. Please verify your account before accessing your profile."
+                    message: "Account not verified. Please verify your account."
                 });
             }
 
             const documents = await Document.find({});
-            const totalDonations = user.totalDonation;
 
-            const dashboardData = {
-                totalDonations: totalDonations,
+            
+            const response = {
+                username: user.username,
+                name: user.name,
+                email: user.email,
+                contactNumber: user.contactNumber,
+                address: user.address,
+                dateOfBirth: user.dateOfBirth,
+                gender: user.gender,
+                currentJob: user.currentJob,
+                governmentOfficial: user.governmentOfficial,
+                ismPassout: user.ismPassout,
+                batch: user.batch,
+                kartavyaVolunteer: user.kartavyaVolunteer,
+                typeOfSponsor: user.typeOfSponsor,
+                profileImage: user.profileImage,
+                role: user.role,
+                isVerified: user.isVerified,
+
+                totalDonations: user.totalDonation,
                 childrenSponsored: user.sponsoredStudents.length,
-                lastDonation: user.donations[0],
+                lastDonation: user.donations[0] || null,
                 recentDonations: user.donations
                     .sort((a, b) => b.donationDate - a.donationDate)
                     .slice(0, 5),
-                documents: documents,
-                sponsoredStudents: user.sponsoredStudents
+                sponsoredStudents: user.sponsoredStudents,
+                documents
             };
 
-            return res.status(200).json(dashboardData);
+            return res.status(200).json(response);
         });
+
     } catch (e) {
-        return res.status(500).json({
-            name: e.name,
-            message: e.message
-        });
+        return res.status(500).json({ name: e.name, message: e.message });
     }
 };
+
 
 module.exports.sendBulkEmails = async (req, res) => {
     try {
