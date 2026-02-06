@@ -615,9 +615,7 @@ module.exports.getDashboard = async (req, res) => {
     try {
         jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
             if (err) {
-                return res.status(403).json({
-                    message: "Protected Route"
-                });
+                return res.status(403).json({ message: "Protected Route" });
             }
 
             if (!authorizedData) {
@@ -627,51 +625,68 @@ module.exports.getDashboard = async (req, res) => {
             }
 
             const user = await User.findOne({ username: authorizedData.username })
-                .select('-salt -hash -_id')
+                .select('-salt -hash')
                 .populate({
                     path: 'donations',
-                    select: '-_id -user'
+                    select: 'amount donationDate description'
                 })
                 .populate({
                     path: 'sponsoredStudents',
-                    select: '-_id -sponsorId',
-                    model: 'Student',
-                    options: { sort: { 'updatedAt': -1 } }
+                    select: 'studentName rollNumber class school profilePhoto sponsorshipStatus'
                 });
 
             if (!user) {
-                return res.status(404).json({
-                    message: "User not found"
-                });
+                return res.status(404).json({ message: "User not found" });
             }
 
-            if (user.isVerified === false) {
+            if (!user.isVerified) {
                 return res.status(403).json({
-                    message: "Account not verified. Please verify your account before accessing your profile."
+                    message: "Account not verified. Please verify your account."
                 });
             }
 
             const documents = await Document.find({});
-            const totalDonations = user.totalDonation;
 
-            const dashboardData = {
-                totalDonations: totalDonations,
+            // Prepare final combined response
+            const response = {
+                // --------------------
+                // FULL PROFILE (from getuser)
+                // --------------------
+                username: user.username,
+                name: user.name,
+                email: user.email,
+                contactNumber: user.contactNumber,
+                address: user.address,
+                dateOfBirth: user.dateOfBirth,
+                gender: user.gender,
+                currentJob: user.currentJob,
+                governmentOfficial: user.governmentOfficial,
+                ismPassout: user.ismPassout,
+                batch: user.batch,
+                kartavyaVolunteer: user.kartavyaVolunteer,
+                typeOfSponsor: user.typeOfSponsor,
+                profileImage: user.profileImage,
+                role: user.role,
+                isVerified: user.isVerified,
+
+                // --------------------
+                // DASHBOARD DATA (old)
+                // --------------------
+                totalDonations: user.donations.length,
                 childrenSponsored: user.sponsoredStudents.length,
-                lastDonation: user.donations[0],
+                lastDonation: user.donations[0] || null,
                 recentDonations: user.donations
                     .sort((a, b) => b.donationDate - a.donationDate)
                     .slice(0, 5),
-                documents: documents,
-                sponsoredStudents: user.sponsoredStudents
+                sponsoredStudents: user.sponsoredStudents,
+                documents
             };
 
-            return res.status(200).json(dashboardData);
+            return res.status(200).json(response);
         });
+
     } catch (e) {
-        return res.status(500).json({
-            name: e.name,
-            message: e.message
-        });
+        return res.status(500).json({ name: e.name, message: e.message });
     }
 };
 
@@ -898,90 +913,6 @@ module.exports.checkLoginType = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Server error while checking login type'
-        });
-    }
-};
-
-module.exports.getLoggedInUser = async (req, res) => {
-    try {
-        jwt.verify(req.token, process.env.JWT_KEY, async (err, authorizedData) => {
-            if (err) {
-                return res.status(403).json({
-                    message: "Unauthorized - Invalid token"
-                });
-            }
-
-            if (!authorizedData) {
-                return res.status(401).json({
-                    message: "Unauthorized - No user data in token"
-                });
-            }
-
-            try {
-                const user = await User.findOne({ username: authorizedData.username })
-                    .select('-salt -hash')
-                    .populate({
-                        path: 'donations',
-                        select: 'amount donationDate'
-                    })
-                    .populate({
-                        path: 'sponsoredStudents',
-                        select: 'studentName profilePhoto rollNumber class school centre gender fathersName contactNumber sponsorshipStatus'
-                    });
-
-                if (!user) {
-                    return res.status(404).json({
-                        message: "User not found"
-                    });
-                }
-
-                // Calculate total donations count
-                const totalDonations = user.donations ? user.donations.length : 0;
-
-                // Get last donation
-                const lastDonation = user.donations && user.donations.length > 0
-                    ? user.donations[0]
-                    : null;
-
-                // Prepare response with all necessary data
-                const userData = {
-                    username: user.username,
-                    name: user.name,
-                    email: user.email,
-                    contactNumber: user.contactNumber,
-                    address: user.address,
-                    dateOfBirth: user.dateOfBirth,
-                    gender: user.gender,
-                    currentJob: user.currentJob,
-                    governmentOfficial: user.governmentOfficial,
-                    ismPassout: user.ismPassout,
-                    batch: user.batch,
-                    kartavyaVolunteer: user.kartavyaVolunteer,
-                    typeOfSponsor: user.typeOfSponsor,
-                    role: user.role,
-                    profileImage: user.profileImage,
-                    isVerified: user.isVerified,
-                    totalDonations: totalDonations,
-                    childrenSponsored: user.sponsoredStudents ? user.sponsoredStudents.length : 0,
-                    lastDonation: lastDonation,
-                    donations: user.donations,
-                    sponsoredStudents: user.sponsoredStudents
-                };
-
-                return res.status(200).json(userData);
-            } catch (innerErr) {
-                console.error('Error fetching user details:', innerErr);
-                return res.status(500).json({
-                    message: "Error fetching user data",
-                    error: innerErr.message
-                });
-            }
-        });
-    } catch (error) {
-        console.error('Error getting logged-in user:', error);
-        return res.status(500).json({
-            message: 'Server error while fetching user data',
-            error: error.message
         });
     }
 };

@@ -103,7 +103,4 @@ router.get('/check-login-type/:username',
     User.checkLoginType
 );
 
-router.route('/getuser')
-    .get(checkToken, catchAsync(User.getLoggedInUser));
-
 module.exports = router;
