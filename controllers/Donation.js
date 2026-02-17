@@ -15,7 +15,9 @@ module.exports.donate = async (req, res, recieptUrl) => {
             name,
             contactNumber,
             email,
-            numChild
+            numChild,
+            academicYear,
+            reductionReason
         } = req.body;
 
         const user = await User.findOne({ email: email });
@@ -26,7 +28,9 @@ module.exports.donate = async (req, res, recieptUrl) => {
             contactNumber,
             email,
             numChild,
+            academicYear,
             recieptUrl,
+            reductionReason,
             user: user ? user._id : null
         });
         const savedDonation = await donation.save();
@@ -63,6 +67,7 @@ module.exports.donate = async (req, res, recieptUrl) => {
                 Contact: ${contactNumber}
                 Email: ${email}
                 Children: ${numChild || 0}
+                Academic Year: ${academicYear || 'N/A'}
             `,
             additionalContent: `
                 <h3>Donation Details:</h3>
