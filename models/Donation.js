@@ -42,6 +42,18 @@ const DonationSchema = new Schema({
         type: Number,
         default: 0
     },
+    academicYear: {
+        type: String,
+        required: false
+    },
+    reductionReason: {
+        type: String,
+        required: false
+    },
+    processed: {
+        type: Boolean,
+        default: false
+    }
 });
 
 
