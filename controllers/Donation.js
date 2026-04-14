@@ -5,6 +5,7 @@ const { sendEmail } = require('../utils/mailer');
 const generateEmailTemplate = require('../utils/mailTemplate');
 const deleteFromAzureBlob = require('../utils/deleteFromBlob');
 const generateReceiptPDF = require('../utils/generateReceiptPdf');
+const Counter = require('../models/Counter')
 
 module.exports.donate = async (req, res, recieptUrl) => {
     try {
@@ -155,9 +156,27 @@ module.exports.verifyDonation = async (req, res) => {
                 return res.status(400).json({ message: "Donation already verified" });
             }
 
-            const count = await Donation.countDocuments({ verified: true });
-            const nextNumber = (count + 1).toString().padStart(3, "0");
-            const receiptNumber = `KAR/DHN/${nextNumber}`;
+            const counter = await Counter.findOneAndUpdate(
+                { name: "DONATION_RECEIPT_NUMBER" },
+                [
+                    {
+                        $set: {
+                            sequenceNumber: {
+                                $cond: [
+                                    { $ifNull: ["$sequenceNumber", false] },
+                                    { $add: ["$sequenceNumber", 1] },
+                                    821
+                                ]
+                            },
+                            prefix: { $ifNull: ["$prefix", "K/DHN/"] }
+                        }
+                    }
+                ],
+                { new: true, upsert: true }
+            );
+
+            const nextNumber = counter?.sequenceNumber?.toString().padStart(3, "0");
+            const receiptNumber = `${counter.prefix}${nextNumber}`;
 
             user.lastDonationDate = Date.now();
             donation.verified = true;

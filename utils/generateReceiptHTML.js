@@ -1,6 +1,8 @@
 const numberToWords = require('./numberToWords');
-const LOGO = '/logo.jpeg';
-const SIGNATURE = '/Signature.jpeg';
+const fs = require('fs');
+const path = require('path');
+const LOGO = `data:image/jpeg;base64,${fs.readFileSync(path.join(__dirname, '../public/logo.jpeg'), 'base64')}`;
+const SIGNATURE = `data:image/jpeg;base64,${fs.readFileSync(path.join(__dirname, '../public/Signature.jpeg'), 'base64')}`;
 
 const generateReceiptHTML = (donation) => {
     const formattedDate = new Date(donation.donationDate).toLocaleDateString('en-GB');
