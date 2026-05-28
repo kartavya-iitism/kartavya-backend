@@ -722,7 +722,10 @@ module.exports.sendBulkEmails = async (req, res) => {
             const emailPromises = targetUsers.map(user => {
                 const emailTemplate = generateEmailTemplate({
                     title: subject,
-                    message: `Hello ${user.name}, <p>${message}</p>`,
+                    message: `Hello ${user.name}, <p>${message
+                        .split('\n')
+                        .map(line => `<p>${line}</p>`)
+                        .join('')}</p>`,
                     highlightBox: templateOptions.highlightBox || false,
                     highlightContent: templateOptions.highlightContent,
                     buttonLink: templateOptions.buttonLink,
