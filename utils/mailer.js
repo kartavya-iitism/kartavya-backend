@@ -38,7 +38,7 @@ const sendEmail = async (options, infoType = 'auto') => {
         }
 
         const mailOptions = {
-            from: `Kartavya IIT ISM<${infoType === 'admim' ? process.env.EMAIL_ADMIN : process.env.EMAIL_USER}>`,
+            from: `Kartavya IIT ISM<${infoType === 'admin' ? process.env.EMAIL_ADMIN : process.env.EMAIL_USER}>`,
             to: options.to,
             subject: options.subject,
             text: options.text || '',

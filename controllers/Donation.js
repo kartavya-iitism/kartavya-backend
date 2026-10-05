@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../utils/mailer');
 const generateEmailTemplate = require('../utils/mailTemplate');
 const deleteFromAzureBlob = require('../utils/deleteFromBlob');
+const generateReceiptPDF = require('../utils/generateReceiptPdf');
+const Counter = require('../models/Counter')
 
 module.exports.donate = async (req, res, recieptUrl) => {
     try {
@@ -13,7 +15,9 @@ module.exports.donate = async (req, res, recieptUrl) => {
             name,
             contactNumber,
             email,
-            numChild
+            numChild,
+            academicYear,
+            reductionReason
         } = req.body;
 
         const user = await User.findOne({ email: email });
@@ -24,7 +28,9 @@ module.exports.donate = async (req, res, recieptUrl) => {
             contactNumber,
             email,
             numChild,
+            academicYear,
             recieptUrl,
+            reductionReason,
             user: user ? user._id : null
         });
         const savedDonation = await donation.save();
@@ -61,6 +67,7 @@ module.exports.donate = async (req, res, recieptUrl) => {
                 Contact: ${contactNumber}
                 Email: ${email}
                 Children: ${numChild || 0}
+                Academic Year: ${academicYear || 'N/A'}
             `,
             additionalContent: `
                 <h3>Donation Details:</h3>
@@ -150,10 +157,39 @@ module.exports.verifyDonation = async (req, res) => {
                 await donor.save();
             }
 
+            if (donation.verified) {
+                return res.status(400).json({ message: "Donation already verified" });
+            }
+
+            const counter = await Counter.findOneAndUpdate(
+                { name: "DONATION_RECEIPT_NUMBER" },
+                [
+                    {
+                        $set: {
+                            sequenceNumber: {
+                                $cond: [
+                                    { $ifNull: ["$sequenceNumber", false] },
+                                    { $add: ["$sequenceNumber", 1] },
+                                    821
+                                ]
+                            },
+                            prefix: { $ifNull: ["$prefix", "K/DHN/"] }
+                        }
+                    }
+                ],
+                { new: true, upsert: true }
+            );
+
+            const nextNumber = counter?.sequenceNumber?.toString().padStart(3, "0");
+            const receiptNumber = `${counter.prefix}${nextNumber}`;
+
             user.lastDonationDate = Date.now();
             donation.verified = true;
             donation.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            donation.receiptNumber = receiptNumber;
             await donation.save();
+
+            const pdfBuffer = await generateReceiptPDF(donation);
 
             const emailTemplate = generateEmailTemplate({
                 title: 'Donation Verified',
@@ -171,7 +207,14 @@ module.exports.verifyDonation = async (req, res) => {
                 to: donation.email,
                 subject: 'Kartavya - Donation Verified',
                 html: emailTemplate,
-                text: `Your donation of ₹${donation.amount} has been verified.`
+                text: `Your donation of ₹${donation.amount} has been verified.`,
+                attachments: [
+                    {
+                        filename: `${donation.receiptNumber}.pdf`,
+                        content: pdfBuffer,
+                        contentType: 'application/pdf'
+                    }
+                ]
             }, 'admin');
 
             return res.status(200).json({ message: 'Donation Verified' });
