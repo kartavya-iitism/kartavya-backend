@@ -701,7 +701,24 @@ module.exports.sendBulkEmails = async (req, res) => {
                     message: "Only admin users can send bulk emails"
                 });
             }
-            const { users, subject, message, templateOptions = {} } = req.body;
+            let { users, subject, message, templateOptions = {} } = req.body;
+
+            // Handle users if received as JSON string (from FormData)
+            if (typeof users === 'string') {
+                try {
+                    users = JSON.parse(users);
+                } catch (e) {
+                    users = [users];
+                }
+            }
+
+            if (typeof templateOptions === 'string') {
+                try {
+                    templateOptions = JSON.parse(templateOptions);
+                } catch (e) {
+                    templateOptions = {};
+                }
+            }
 
             if (!users || !Array.isArray(users) || !subject || !message) {
                 return res.status(400).json({
@@ -718,6 +735,13 @@ module.exports.sendBulkEmails = async (req, res) => {
                     message: "No valid users found"
                 });
             }
+
+            // Extract file attachments if uploaded
+            const attachments = req.files ? req.files.map(file => ({
+                filename: file.originalname,
+                content: file.buffer,
+                contentType: file.mimetype
+            })) : [];
 
             const emailPromises = targetUsers.map(user => {
                 const emailTemplate = generateEmailTemplate({
@@ -740,7 +764,8 @@ module.exports.sendBulkEmails = async (req, res) => {
                     to: user.email,
                     subject: `Kartavya - ${subject}`,
                     html: emailTemplate,
-                    text: message
+                    text: message,
+                    attachments
                 });
             });
 
